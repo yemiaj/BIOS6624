@@ -59,5 +59,6 @@ rsconnect/
 *.sas7bdat
 *.xport
 *.mdb
+*.Rproj
 DataRaw/
 DataProcessed/
