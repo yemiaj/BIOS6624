@@ -1,4 +1,5 @@
 # BIOS6624
+
 BIOS 6624 (Advanced Stats Methods &amp; Analysis [Spring26]) course project files
 
 File structure details: 
@@ -14,4 +15,5 @@ DataRaw |
 Reports | 
 
 #01/23/2026
+
 This repository contains analysis code and information for BIOS 6624.
