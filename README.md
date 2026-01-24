@@ -17,3 +17,5 @@ Reports |
 # 01/23/2026
 
 This repository contains analysis code and information for BIOS 6624.
+
+Included questions and ideas after reading Project 0 Description.
