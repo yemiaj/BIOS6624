@@ -17,7 +17,8 @@
   unlike the other timepoints that is ancored to wake time. Unless there is a biological (metabolic/ism) reason for requesting the lunch timepoint
   instead of say, 5 hours after waking.
 3)Heterogeneity in these markers by other unmeasured biological variables including age, gender
-
+4)Repeated lab assay for the cortisol and DHEA levels in the saliva?
+  
 
 #Analysis ideas
 1)Average over the 3 measurement days within each individual and timepoint. Justify this by checking for the presence or absence
@@ -35,3 +36,19 @@
 #Lookup
 1)Bland and Altman plots for aggrement for continuous data (would need to convert time to numeric data though)
 2)GLHT for covariates with non-linear (polynomial fits)
+
+
+Class notes
+Q1: Correlation for the first objective (scatter plot) and also see if there is bias between the treatments
+Q2: Descriptive for Q2, proportion/categories of the difference between actual and reported. Good adherence (7.5mins) and adequate (15mins) 
+If the observed trend is similar to a quadratic curve. Rate of decline after peak and change from wake up to peak.
+USe mmol/L measurement
+Assume sample size is adequate the research questions
+Expected ranges cortisol (nmol/L: >26 possible but not very likely [do not remove as is biologically pluasibl]; >80 is likely artefact)
+Expected ranges DHEA (nmol/L: <= 5.205) Review and consider excluding cases with such high values
+Linear mixed effects model
+Q1: Average over repeated measures but may not be a v good idea; include a scatter plot; tabulate missingness between booklet and c
+Q3: Check booklet and cap time, see if results are similar (hopefully they agree)
+
+
+
