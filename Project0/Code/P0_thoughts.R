@@ -15,9 +15,9 @@
   3 data time points for a quadratic fit and 4 for a cubic fit (Which may be an overkill).
 2)Of all the sample collection time points, the lunch timepoint MAY be the most inconsistent because of the difference in individuals lunch time,
   unlike the other timepoints that is ancored to wake time. Unless there is a biological (metabolic/ism) reason for requesting the lunch timepoint
-  instead of say, 5 hours after waking.
+  instead of say, 5 hours after waking. The same patient can have lunch at different times over these days of sample collection
 3)Heterogeneity in these markers by other unmeasured biological variables including age, gender
-4)Repeated lab assay for the cortisol and DHEA levels in the saliva?
+4)[comment in class]Repeated lab assay for the cortisol and DHEA levels in the saliva?
   
 
 #Analysis ideas
@@ -31,6 +31,11 @@
 3)Bland and Altman plot for agreement [Q1], GLHT for adherence to 30min & 10hr [Q2], 
   modelling and some linear hypothesis test for changes in markers overtime [Q3]. If a hypothesis test is needed, then this may impact 
   choice of analytic method (and GAM may not be appropriate)
+
+4)Decide between random intercept and/or trend using LRT. Then test for significance of nesting of day within subject, and then significance of 
+  random effect for day within subject and if not significant, then day will be a fixed effect. 
+
+5)Marginalize over day (DAYNUM) for visualization/plots, you can also see what plot looks like for min, max compared to average.
 
 
 #Lookup
@@ -50,5 +55,9 @@ Linear mixed effects model
 Q1: Average over repeated measures but may not be a v good idea; include a scatter plot; tabulate missingness between booklet and c
 Q3: Check booklet and cap time, see if results are similar (hopefully they agree)
 
+
+#Coding
+1)Collection smaple as categorical or recode to hours (challenge with lunch timepoint). I think recoding as hour is most appropriate.
+2)Be cognizant of missingness and do so detailed assessment of it.
 
 
