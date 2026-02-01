@@ -44,6 +44,7 @@
 
 
 Class notes
+#on 01/26
 Q1: Correlation for the first objective (scatter plot) and also see if there is bias between the treatments
 Q2: Descriptive for Q2, proportion/categories of the difference between actual and reported. Good adherence (7.5mins) and adequate (15mins) 
 If the observed trend is similar to a quadratic curve. Rate of decline after peak and change from wake up to peak.
@@ -54,6 +55,23 @@ Expected ranges DHEA (nmol/L: <= 5.205) Review and consider excluding cases with
 Linear mixed effects model
 Q1: Average over repeated measures but may not be a v good idea; include a scatter plot; tabulate missingness between booklet and c
 Q3: Check booklet and cap time, see if results are similar (hopefully they agree)
+
+#on 01/28
+Q1: interpret the meaning of slope and intercept in a lmm, ignore days or check if significant
+Q2: do per day and later combine if no difference
+For adherence, straddle the time into 7.5mins early vs 7.5mins late (as defined in the last class) instead of putting it all on late. Do the latter and see how results compares
+#instructor discussion
+Q1: Scatter plot of CAP (y-var) by BOOK (x-var) with random intercept for subject
+  Interpret the intercept and slope for the investigator
+  Calculate CAP and BOOK times from sleep diary wake time 
+
+Q2: Describe, maybe CI for proportion. 7.5minutes from either direction
+
+Q3: Is there significant increase from 0 to 30, and rate of decline. 
+  Piecewise linear with knot at 30mins using LMMs
+
+
+
 
 
 #Coding
