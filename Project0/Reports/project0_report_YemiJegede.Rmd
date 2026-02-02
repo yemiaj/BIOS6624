@@ -1,0 +1,47 @@
+---
+title: 'Project 0: Diurnal Pattern of Cortisol and DHEA Hormones'
+author: "Opeyemi Jegede"
+date: "2026-02-02"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+## Background
+Cortisol and DHEA (dehydroepiandrosterone) are hormones that regulate the stress system. These hormones exhibit a diurnal pattern whereby it peaks shortly after waking and then falls over the day to a low in the evening. This diurnal pattern have been shows to impact depression, sleep disorders, and many other conditions.
+
+Accurate collection and measurement of these hormones in a natural environment, such as at home, is important for research on the endocrine system. This research also critical for the characterization of cortisol awakening response and for defining the diurnal decline in salivary cortisol.
+
+## Design and Data Collection
+In this study, investigators tested the use of a convenient novel device for collecting saliva on strips of filter paper in a specially constructed booklet for determination of both salivary cortisol and DHEA. Thirty-one (31) healthy control subjects collected saliva sample four times a day for three days using this novel filter paper device (Saliva Procurement and Integrated Testing (SPIT) booklet). The device was maintained during the collection period in a large plastic bottle with an electonic monitoring cap. Subjects were asked to collect saliva samples at four timepoints: waking, 30 minutes later, before lunch, and 600 minutes after waking. The time of waking and time before lunch were allowed to vary by subjects' schedules.
+
+## Research question
+
+
+
+# Methods
+
+## Hypothesis
+
+## Analysis approach
+
+
+
+
+```{r title1}
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r title2, echo=FALSE}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
