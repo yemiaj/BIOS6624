@@ -63,6 +63,7 @@ cort.dat2$book.interval.mins <- as.numeric(cort.dat2$book.time.mins - cort.dat2$
 cort.dat2$mems.interval.mins <- as.numeric(cort.dat2$mems.time.mins - cort.dat2$mems.wake.time.mins)
 cort.dat2$samp.interval <- cort.dat2$samp.date - cort.dat2$samp.date.baseline
 
+cort.dat2[cort.dat2$samp.interval>2,] #SubjectID 3029 is only subject for which samples were not collected on consecutive days but at 0, 3, and 5 days for the first, second, and third samples respectively
 
 #Select and order variables
 cort.dat2 <- cort.dat2[, c("SubjectID", "samp.timepoint", "samp.day123", "samp.interval", "samp.date", "wake.time.per.diary", 
@@ -96,7 +97,7 @@ cort.dat2[!(is.na(cort.dat2$time.since.waking.booklet) | is.na(cort.dat2$book.in
 cort.dat2[!(is.na(cort.dat2$time.since.waking.electronic) | is.na(cort.dat2$mems.interval.mins)) & (cort.dat2$time.since.waking.electronic != cort.dat2$mems.interval.mins), ]
 
 
-#The preidictor of interest has 35 observations with missing values, 23 of these can be salvaged if we substitute mems.interval.mins for book.interval.mins
+#The predictor of interest has 35 observations with missing values, 23 of these can be salvaged if we substitute mems.interval.mins for book.interval.mins
 cort.dat2[is.na(cort.dat2$book.interval.mins),]
 cort.dat2[is.na(cort.dat2$book.interval.mins) & !is.na(cort.dat2$mems.interval.mins),]
 
@@ -111,6 +112,18 @@ cort.dat2 <- cort.dat2[,c(1,23,2:22)]
 #Per investigator, cortisol level >80 is likely an artifact
 #Only 1 subject (3025) affected and set to NA
 cort.dat2$cort.nmoll[!is.na(cort.dat2$cort.nmoll) & cort.dat2$cort.nmoll>80] <- NA
+
+
+#Preliminary codes for analysis of objectives
+#Q1
+cor(cort.dat2$book.interval.mins, cort.dat2$mems.interval.mins, use="complete.obs")
+cor(cort.dat2$time.since.waking.booklet, cort.dat2$time.since.waking.electronic, use="complete.obs")
+#Don't forget to take log!
+
+#Q2
+for (i in 1:4) print(summary(cort.dat2[cort.dat2$samp.timepoint==i,"book.interval.mins"]))
+#Conditional on samp.timepoint %in% c(2,4) for coding adherence
+
 
 #Export final data
 write.csv(cort.dat2, "./Project0/DataProcessed/Project0_data.csv")
