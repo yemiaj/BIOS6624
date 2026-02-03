@@ -51,7 +51,7 @@ If the observed trend is similar to a quadratic curve. Rate of decline after pea
 USe mmol/L measurement
 Assume sample size is adequate the research questions
 Expected ranges cortisol (nmol/L: >26 possible but not very likely [do not remove as is biologically pluasibl]; >80 is likely artefact)
-Expected ranges DHEA (nmol/L: <= 5.205) Review and consider excluding cases with such high values
+Expected ranges DHEA (nmol/L: <= 5.205) Review and consider excluding cases with such high values. The 5.205 should be set to NA too.
 Linear mixed effects model
 Q1: Average over repeated measures but may not be a v good idea; include a scatter plot; tabulate missingness between booklet and c
 Q3: Check booklet and cap time, see if results are similar (hopefully they agree)
@@ -71,7 +71,11 @@ Q3: Is there significant increase from 0 to 30, and rate of decline.
   Piecewise linear with knot at 30mins using LMMs
 
 
-
+#On 02/02/2026
+DHEA values = 5.205 should be NA, this is the limit of detection of the assay.
+Cortisol of >80 should be NA.
+Plot with actual data points
+Include confidence intervals 
 
 
 #Coding
