@@ -6,6 +6,8 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
+library(ggplot2)
+library(lme4)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -20,7 +22,7 @@ Accurate collection and measurement of these hormones in a natural environment, 
 In this study, investigators tested the use of a convenient novel device for collecting saliva on strips of filter paper in a specially constructed booklet for determination of both salivary cortisol and DHEA. Thirty-one (31) healthy control subjects collected saliva sample four times a day for three days using this novel filter paper device (Saliva Procurement and Integrated Testing (SPIT) booklet). The device was maintained during the collection period in a large plastic bottle with an electonic monitoring cap. Subjects were asked to collect saliva samples at four timepoints: waking, 30 minutes later, before lunch, and 600 minutes after waking. The time of waking and time before lunch were allowed to vary by subjects' schedules.
 
 ## Research question
-
+The three research question are (a) what is the agreement between the subject’s recordings of sampling times compared to the times recorded by an electronic monitoring cap, (b) are subjects adhering accurately to the +30 minutes and +10 hour sampling times required by a study protocol, and (c) what are the changes of cortisol and DHEA over time?
 
 
 # Methods
