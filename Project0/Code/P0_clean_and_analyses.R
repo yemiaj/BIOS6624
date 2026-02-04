@@ -33,7 +33,7 @@ cort.dat$samp.date <- as.Date(cort.dat$Collection.Date, format = '%m/%d/%Y')
 cort.dat$samp.timepoint <- cort.dat$Collection.Sample
 cort.dat$samp.day123 <- cort.dat$DAYNUMB
 cort.dat$wake.time.per.diary <- cort.dat$Sleep.Diary.reported.wake.time
-cort.dat$wake.time.diary.in.mins <- as.numeric(as.difftime(cort.dat$Sleep.Diary.reported.wake.time, format="%H:%M", units = 'mins'))
+cort.dat$wake.time.diary.in.mins <- as.difftime(cort.dat$Sleep.Diary.reported.wake.time, format="%H:%M", units = 'mins')
 cort.dat$time.since.waking.booklet <- cort.dat$Booklet..Sample.interval.Decimal.Time..mins.
 cort.dat$time.since.waking.electronic <- cort.dat$MEMs..Sample.interval.Decimal.Time..mins.
 
@@ -43,6 +43,7 @@ cort.dat$dhea.pgdl <- cort.dat$DHEA..pg.dl.
 cort.dat$dhea.nmoll <- cort.dat$DHEA..nmol.L.
 
 #Manipulate booklet and electronic (MEMs) clock time so that interval time from waking can be collected
+#Actually interval should be calculated using wake time determined from the sleep diary. So bring that in as well
 cort.dat$book.time <- cort.dat$Booket..Clock.Time
 cort.dat$mems.time <- cort.dat$MEMs..Clock.Time
 cort.dat$book.time.mins <- as.difftime(cort.dat$Booket..Clock.Time, format="%H:%M", units = 'mins')
@@ -52,8 +53,8 @@ cort.dat$book.time.hrs <- as.difftime(cort.dat$Booket..Clock.Time, format="%H:%M
 cort.dat$mems.time.hrs <- as.difftime(cort.dat$MEMs..Clock.Time, format="%H:%M", units = 'hours')
 
 #Select the booklet and MEMs time for the first collection timepoint for each day and do a many to one marge below
-wake.times <- cort.dat[cort.dat$Collection.Sample==1, c("SubjectID", "DAYNUMB", "book.time.mins", "mems.time.mins")]
-names(wake.times)[3:4] <- c("book.wake.time.mins", "mems.wake.time.mins") 
+wake.times <- cort.dat[cort.dat$Collection.Sample==1, c("SubjectID", "DAYNUMB", "book.time.mins", "mems.time.mins", "wake.time.diary.in.mins")]
+names(wake.times)[3:5] <- c("book.wake.time.mins", "mems.wake.time.mins", "diary.wake.time.mins") 
 
 #select and merge baseline sample collection date to see if samples for this study were collected on consecutive days for all patients
 samp.times <- cort.dat[cort.dat$Collection.Sample==1 & cort.dat$DAYNUMB==1, c("SubjectID", "samp.date")]
@@ -63,9 +64,10 @@ names(samp.times)[2] <- "samp.date.baseline"
 cort.dat2 <- merge(cort.dat, wake.times, by=c("SubjectID", "DAYNUMB"))
 cort.dat2 <- merge(cort.dat2, samp.times, by="SubjectID")
 
-#Calculate time from waking to sample collection for booklet and MEMs. These are the equivalent of Booklet..Sample.interval.Decimal.Time..mins. and MEMs..Sample.interval.Decimal.Time..mins.
-cort.dat2$book.interval.mins <- as.numeric(cort.dat2$book.time.mins - cort.dat2$book.wake.time.mins)
-cort.dat2$mems.interval.mins <- as.numeric(cort.dat2$mems.time.mins - cort.dat2$mems.wake.time.mins)
+#Calculate time from waking to sample collection for booklet and MEMs using wake time from diary for both measuremes
+  #These are the equivalent of Booklet..Sample.interval.Decimal.Time..mins. and MEMs..Sample.interval.Decimal.Time..mins. provided in the data from inveatigator.
+cort.dat2$book.interval.mins <- as.numeric(cort.dat2$book.time.mins - cort.dat2$diary.wake.time.mins)
+cort.dat2$mems.interval.mins <- as.numeric(cort.dat2$mems.time.mins - cort.dat2$diary.wake.time.mins)
 
 #Variable to see if subject collected samples beyond the 3 consecutive days indicated
 cort.dat2$samp.interval <- cort.dat2$samp.date - cort.dat2$samp.date.baseline
@@ -75,9 +77,9 @@ cort.dat2[cort.dat2$samp.interval>2,]
 
 #Select and order variables
 cort.dat2 <- cort.dat2[, c("SubjectID", "samp.timepoint", "samp.day123", "samp.interval", "samp.date", "samp.date.baseline", "wake.time.per.diary", 
-                           "wake.time.diary.in.mins", "book.time", "mems.time", "book.time.mins", "mems.time.mins", "book.time.hrs", "mems.time.hrs", "time.since.waking.booklet", 
-                           "time.since.waking.electronic", "cort.ugdl", "cort.nmoll", "dhea.pgdl", "dhea.nmoll", "book.wake.time.mins", 
-                           "mems.wake.time.mins", "book.interval.mins", "mems.interval.mins")] 
+                           "wake.time.diary.in.mins", "book.time", "mems.time", "book.time.mins", "mems.time.mins", "book.time.hrs", "mems.time.hrs", 
+                           "time.since.waking.booklet", "time.since.waking.electronic", "cort.ugdl", "cort.nmoll", "dhea.pgdl", "dhea.nmoll", 
+                           "book.wake.time.mins", "mems.wake.time.mins", "diary.wake.time.mins", "book.interval.mins", "mems.interval.mins")] 
 
 str(cort.dat2) #See variable types and values
 
@@ -87,7 +89,7 @@ str(cort.dat2) #See variable types and values
 cort.dat2[is.na(cort.dat2$time.since.waking.booklet) | is.na(cort.dat2$book.interval.mins),]
 
 #Subject 3049 had non-missing values (==0) for "cort.dat$Booklet..Sample.interval.Decimal.Time..mins." when "cort.dat$Collection.Sample" ==1 but all values were
-  # NAs for my calculated book.interval.mins. This makes sense because interval time is 0 at waking. I have hardcoded these such that this case is not dropped 
+  # NAs for my calculated book.interval.mins. This makes sense because interval time is 0 at waking. I have hardcoded these so that this case is not dropped 
   # from analysis since the intention is to use booklet interval time as main predictor
 
 #Hardcoding SubjectID==3049, see explanation above
@@ -98,13 +100,15 @@ cort.dat2[is.na(cort.dat2$time.since.waking.electronic) | is.na(cort.dat2$mems.i
 #There was no instance of "cort.dat2$time.since.waking.electronic" having a non-NA value while the value I computed had missing values!
 
 #When neither the investigator provided time.since.waking.booklet nor my calculated book.interval.mins is NA, then the investigator provided and my calculated interval times are the same!
+#This used to be true when I calculated interval using book.wake.time.mins but not anymore
 cort.dat2[!(is.na(cort.dat2$time.since.waking.booklet) | is.na(cort.dat2$book.interval.mins)) & (cort.dat2$time.since.waking.booklet != cort.dat2$book.interval.mins), ]
 
 #Likewise, when neither the investigator provided time.since.waking.electronic nor my calculated mems.interval.mins is NA, then the investigator provided and my calculated interval times are the same!
+#This used to be true when I calculated interval using book.wake.time.mins but not anymore
 cort.dat2[!(is.na(cort.dat2$time.since.waking.electronic) | is.na(cort.dat2$mems.interval.mins)) & (cort.dat2$time.since.waking.electronic != cort.dat2$mems.interval.mins), ]
 
 
-#The predictor of key interest has 35 observations with missing values, 23 of these can be salvaged if we substitute mems.interval.mins for book.interval.mins
+#The predictor of key interest has 32 observations with missing values, 23 of these can be salvaged if we substitute mems.interval.mins for book.interval.mins
 cort.dat2[is.na(cort.dat2$book.interval.mins),]
 cort.dat2[is.na(cort.dat2$book.interval.mins) & !is.na(cort.dat2$mems.interval.mins),]
 
@@ -115,7 +119,7 @@ cort.dat2$book.interval.mins.v2[is.na(cort.dat2$book.interval.mins.v2)] <- cort.
 #Create a new ID/cluster variable for subjectID and day number
 cort.dat2$SubjectID.day <- paste0(cort.dat2$SubjectID, "-", cort.dat2$samp.day123)
 cort.dat2$SubjectID.time <- paste0(cort.dat2$SubjectID, "-", cort.dat2$samp.timepoint)
-cort.dat2 <- cort.dat2[,c(1,26:27,2:25)]
+cort.dat2 <- cort.dat2[,c(1,27:28,2:26)]
 
 
 #Per investigator, cortisol level >80 is likely an artifact
@@ -129,7 +133,8 @@ cort.dat2$dhea.nmoll[!is.na(cort.dat2$dhea.nmoll) & cort.dat2$dhea.nmoll==5.205]
 
 
 #Coding adherence
-cort.dat2$adhere.cat <- ifelse(cort.dat2$samp.timepoint==2, as.numeric(cut(abs(cort.dat2$book.interval.mins - 30), breaks=c(-Inf, 7.5, 15, Inf))), #Microsoft CoPilot used for abs() & +/-Inf coding logic
+#Microsoft CoPilot used for abs() & +/-Inf coding logic
+cort.dat2$adhere.cat <- ifelse(cort.dat2$samp.timepoint==2, as.numeric(cut(abs(cort.dat2$book.interval.mins - 30), breaks=c(-Inf, 7.5, 15, Inf))), 
                                ifelse(cort.dat2$samp.timepoint==4, as.numeric(cut(abs(cort.dat2$book.interval.mins - 600), breaks=c(-Inf, 7.5, 15, Inf))), NA)
                                )
 
@@ -138,16 +143,28 @@ cort.dat2$log.cort.nmoll <- log(cort.dat2$cort.nmoll)
 cort.dat2$log.dhea.nmoll <- log(cort.dat2$dhea.nmoll)
 
 #Export final data
-write.csv(cort.dat2, "./Project0/DataProcessed/Project0_data.csv")
+write.csv(cort.dat2, "./Project0/DataProcessed/Project0_data.csv", row.names = FALSE)
 
+
+
+
+
+
+
+
+
+
+
+
+#Rough/working codes beyond here
 
 #Preliminary codes for analysis of objectives
 #Final decisions: Box plot (with data point dots) of cort.nmoll & dhea.nmoll by samp.timepoint
   #Use whole data and data averaged collapsed by samp.timepoint (i.e., marginalize out samp.day123)
   #Create a 2x2 plot using boxplot(), row is full vs collapsed and column is cortisol vs DHEA
 
-#Table one of columns of samp.timepoint and grand total (Use data that has been collapsed by timepoint/day123)
-  #Rows include book.time.hrs, mems.time.hrs, book.interval.mins, mems.interval.mins, cort.nmoll, dhea.nmoll,  log cort.nmoll, log dhea.nmoll, 
+#Table one with columns of samp.timepoint and grand total
+  #Rows include book.time.hrs, mems.time.hrs, book.interval.mins, mems.interval.mins, cort.nmoll,  log.cort.nmoll, dhea.nmoll, log.dhea.nmoll 
 
 #Data structure: Y_{ijk} for i = 1 to 31, j = 1 to 3, and k = 1 to 4
   #Indicate nesting in SubjectID (samp.day123 (samp.timepoint))
@@ -162,7 +179,7 @@ write.csv(cort.dat2, "./Project0/DataProcessed/Project0_data.csv")
 mod0 <- lme4::lmer(book.interval.mins ~ mems.interval.mins + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
 summary(mod0)
 summary(mod0)$coefficients
-#Plot of this data, as dots with regressionline and maybe confidence interval
+#Plot of this data, as dots with regression line and maybe confidence interval
 
 #Residual analysis in R-25 L08b
 mod.fitted <- fitted(mod0)
@@ -191,18 +208,26 @@ with(cort.dat2[cort.dat2$samp.timepoint %in% c(2,4), ], prop.table(table(adhere.
 
 #Q3
 #Cortisol
-mod2a <- lme4::lmer(log.cort.nmoll ~ book.interval.mins + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
+mod2a <- lmer(log.cort.nmoll ~ book.interval.mins + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
+mod2a <- lmer(log.cort.nmoll ~ book.interval.mins + I((book.interval.mins-30)*(book.interval.mins>30)) + (1 | SubjectID), data=cort.dat2)
+summary(mod2a)
 mod.fitted.2a <- fitted(mod2a)
 mod.resid.2a <- resid(mod2a)
 plot(y=mod.resid.2a, x=mod.fitted.2a, col='red', lwd=2)
 
+
+
 #DHEA
-mod2b <- lme4::lmer(log.dhea.nmoll ~ book.interval.mins + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
+mod2b <- lmer(log.dhea.nmoll ~ book.interval.mins + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
+mod2b <- lmer(log.dhea.nmoll ~ book.interval.mins + I((book.interval.mins-30)*(book.interval.mins>30)) + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
+summary(mod2b)
+
+mod2del <- lmer(log.dhea.nmoll ~ factor(samp.timepoint) + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
+summary(mod2del)
+
 mod.fitted.2b <- fitted(mod2b)
 mod.resid.2b <- resid(mod2b)
 plot(y=mod.resid.2b, x=mod.fitted.2b, col='red', lwd=2)
-
-
 
 
 
@@ -231,12 +256,3 @@ gls(book.interval.mins ~ mems.interval.mins, data=cort.dat2, na.action = na.excl
 
 summary(lm(mems.interval.mins~book.interval.mins, data=cort.dat2))
 summary(lm(book.interval.mins~mems.interval.mins, data=cort.dat2))
-
-
-
-#Next time around
-#Select both units of cortisol and DHEA for keeps sake
-#Check variable types and format accordingly
-#Spaghetti as well as means plot of cortisol and dhea (1)overall, (2)within each DAYNUMBER check for location and dispersion among the different days and overall.
-#create a new id variable that concatenates subjid with daynumb and select mean, min, max as summary measure when creating plots
-#Also, separate spaghetti plot by day 1, day2, day3, and overall

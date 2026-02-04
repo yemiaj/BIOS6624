@@ -2,48 +2,291 @@
 title: 'Project 0: Diurnal Pattern of Cortisol and DHEA Hormones'
 author: "Opeyemi Jegede"
 date: "2026-02-02"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
+library(dplyr)
+library(gtsummary)
+library(knitr)
 library(ggplot2)
 library(lme4)
+library(lmerTest)
+library(multcomp)
 knitr::opts_chunk$set(echo = TRUE)
+
+#Import final analysis dataset
+f.data <- read.csv('../DataProcessed/Project0_data.csv') 
 ```
 
-# Introduction
+## Introduction
 
-## Background
-Cortisol and DHEA (dehydroepiandrosterone) are hormones that regulate the stress system. These hormones exhibit a diurnal pattern whereby it peaks shortly after waking and then falls over the day to a low in the evening. This diurnal pattern have been shows to impact depression, sleep disorders, and many other conditions.
+Cortisol and DHEA (dehydroepiandrosterone) are hormones that regulate the stress system. These hormones exhibit a diurnal pattern whereby they peak shortly after waking and then fall over the day to a low in the evening. This diurnal pattern has been shown to impact depression, sleep disorders, and many other conditions. Accurate collection and measurement of these hormones in a natural environment, such as at home, is important for research on the endocrine system.
 
-Accurate collection and measurement of these hormones in a natural environment, such as at home, is important for research on the endocrine system. This research also critical for the characterization of cortisol awakening response and for defining the diurnal decline in salivary cortisol.
+In this study, investigators tested the use of a convenient novel device for collecting saliva on strips of filter paper in a specially constructed booklet for determination of both salivary cortisol and DHEA. Thirty-one (31) healthy control subjects collected saliva sample four times a day for three consecutive days using a novel filter paper device (Saliva Procurement and Integrated Testing (SPIT) booklet). The device was maintained during the collection period in a large plastic bottle with an electronic monitoring cap. Subjects were asked to collect saliva samples at four timepoints: at waking, 30 minutes after waking, before lunch, and 600 minutes (10 hours) after waking. The time of waking and time before lunch were allowed to vary by subjects' schedules.
 
-## Design and Data Collection
-In this study, investigators tested the use of a convenient novel device for collecting saliva on strips of filter paper in a specially constructed booklet for determination of both salivary cortisol and DHEA. Thirty-one (31) healthy control subjects collected saliva sample four times a day for three days using this novel filter paper device (Saliva Procurement and Integrated Testing (SPIT) booklet). The device was maintained during the collection period in a large plastic bottle with an electonic monitoring cap. Subjects were asked to collect saliva samples at four timepoints: waking, 30 minutes later, before lunch, and 600 minutes after waking. The time of waking and time before lunch were allowed to vary by subjects' schedules.
+There are 3 scientific hypotheses of interest in this study. Firstly, it is of interest to assess the pattern of, and whether there is an association between, saliva samples collection time reported by subjects in the SPIT booklet compared to the collection time recorded by the electronic monitoring cap. Secondly, what is the adherence to the (a) 30 minutes after waking and (b) 600 minutes (10 hours) after waking sample collection time as required by the study protocol. Good and adequate adherence is defined as samples collected within 7.5 and 15 minutes respectively of the required sampling time. The third scientific hypothesis has 2 components and applies to cortisol as well as DHEA, and includes determining whether there is an increase in the levels of these hormones between waking and 30 minutes post waking, and also what is the rate of decline in these hormones after 30 minutes from waking?
 
-## Research question
-The three research question are (a) what is the agreement between the subject’s recordings of sampling times compared to the times recorded by an electronic monitoring cap, (b) are subjects adhering accurately to the +30 minutes and +10 hour sampling times required by a study protocol, and (c) what are the changes of cortisol and DHEA over time?
+## Methods
+
+Data from investigator contained 372 observations from 31 unique subjects representing 4 sample collection time points repeated on 3 consecutive days. One of the study subjects (ID 3029) with erroneous `days [DAYNUMB]` values was re-coded following discussion with the investigator. This subject also did not submit samples on consecutive days unlike all other study subjects. One and 3 unique subjects were identified to have salivary cortisol and DHEA levels outside normal physiological range and at the limit of detection respectively. These values were re-coded to `NA` following discussion with investigator.
+
+Date/time functions were used to format and manipulate variables that were related to sample collection. For each booklet and electronic sample collection time, the time interval from waking to sample collection was calculated by taking the difference between the collection time and wake as determined from the sleep diary. Adherence to protocol-specified sample collection time point 30 and 600 minutes after waking was coded using conditional statements and the `cut()` function to group the collection times into Good, Adequate, and Poor adherence if the collection time falls within 7.5, 15, or beyond 15 minutes respectively. No observation or subject was removed from analysis, and a clean dataset was output and saved for final analysis.
+
+Measures of spread and location such as standard deviation and mean respectively were used to describe continuous variables, while frequency & proportion was used to describe categorical variables. These estimates were tabulated and stratified by sample collection time point. Box plots were used to visualize the distribution of the key markers cortisol and DHEA, and appropriate transformations (e.g., log or square root or other appropriate transformation) applied before analysis. The number of cases with missing values for any of these variables was also tabulated. Since subjects collected samples over 3 days, data was not aggregated over these collection days prior to primary analyses. Sensitivity analyses were performed to assess the appropriateness of the decision to not aggregate the data.
+
+To address the first hypothesis, a univariable random-intercept linear mixed effect model was used to regress booklet time (as the independent variable) on electronic monitoring cap time (dependent variable). The rationale for this modelling approach was to account for the correlation between multiple measurements collected from the same subject, and it was expected that different subjects have varying starting values for these hormones at baseline, hence the need for a mixed effect random-intercept model. From the model output, the intercept and slope coefficient estimates were used to assess for bias and an association between these 2 measurement times respectively and inference was performed using the t-test statistic from the model output.
+
+For the second hypothesis, the adherence of samples collected at the 2 protocol-specified sample collection time points of interest was categorized as previously described. It is noteworthy that these estimates represent adherence of sample submission timepoints, and not adherence of individual subjects. The frequency and proportion of adherence categories at both time points were tabulated. This was a descriptive analysis; 95% exact (Clopper–Pearson) binomial confidence interval was computed as a measure of precision around the proportion estimates. 
+
+Lastly, to determine whether there was an increase in the levels of cortisol and DHEA between waking and 30-minutes post waking as well as to assess the rate of decline in these hormones 30-minutes after waking, a piecewise linear mixed model with a knot at 30 minutes was fitted to the data using the same mixed-effects regression framework indicated above. A piece-wise model with a knot at 30 minutes was deemed appropriate following discussion with the investigator. A general linear hypothesis test using a Wald test was used to assess whether there is an increase in these hormones between waking and 30 minutes post waking by setting up a contrast. For the other objective of assessing the rate of decline 30-minutes after waking, the slope corresponding to this post-waking period was used to perform the hypothesis test using the t-test statistic.
+The significance level for all hypothesis tests was 5% (2-sided). There was no adjustment for multiple comparisons. All analyses were performed using R statistical software (version 4.5.2).
 
 
-# Methods
+## Results
 
-## Hypothesis
+Table 1 below shows the distribution of sample collection time (in hours) for the booklet and electronic recording. Overall, the mean booklet time is lower than the electronic time. However, there are more missing observations for the electronic than the booklet recording. The same pattern is observed for the sample interval for both sample collection sources. For salivary cortisol, the mean log salivary cortisol increased from waking to 30 minutes after with values of 1.7 and 2.0 nmol/L respectively. However, a decrease was observed for log of salivary DHEA from waking to 30 minutes after from 0.2 to -0.2 nmol/L. This pattern is reflected in the box plot of raw values of these hormones presented in Figure 1a which also shows a few outlier values for these markers. Figure 1b shows the distribution of these markers when data is aggregated over the days of repeated measurements. Because of the presence of outliers, these markers were log-transformed prior to the main analysis assessing change over time. Because booklet time has fewer missing observations, it was used for main analysis.
 
-## Analysis approach
+Table 2a shows the relationship between electronic and booklet sample collection time. The mean (95% confidence interval [CI]; p-value) sample collection time as measured by electronic cap is significantly higher than the booklet collection time by 10.39 minutes (4.83, 15.97; 0.001). This indicates that in the current data, there is a significant bias between both sample collection time measures. There is a statistically significant linear relationship between both measures however, such that on average, a unit increase in booklet time corresponds to 0.99 (0.98, 1.00; <0.0001) increase in electronic time. A scatter plot and the fitted line showing this relationship is shown in Figure 2 below.
+
+Table 2b shows the frequency and proportion of adherence to study-specified sample collection time points measured using the booklet time. The proportion (95% CI) of poor and adequate adherence is similar at the 30 minutes after waking with an estimate of 10.3% (4.8, 19.0) and 11.5% (5.7, 20.0) respectively while the rate of adherence for good is 78.2% (68.0, 86.0). By 600 minutes after waking time point, the rate of good adherence had reduced to 46.3% (35.0, 58.0) while the rate of poor adherence increased to 43.8% (33.0, 55.0).
+
+Table 2c shows estimates describing the changes in salivary cortisol and DHEA at waking (Intercept), within 30 minutes of waking (`Booklet Interval (0, 30]`), and after 30 minutes and beyond `Booklet Interval (30, max]`. The estimates, standard errors, and CIs are on the log scale. At waking, the geometric mean (95% CI; p-value) salivary cortisol is e1.719 = 5.579 nmol/L (4.591, 6.781; <0.0001) which indicates the presence of cortisol in saliva samples at wake up time. The same is true for DHEA with geometric mean level of e0.267 =1.306 nmol/L (1.040, 1.642; <0.0001). Between wake-up time and before 30 minutes, the salivary cortisol rises at a rate of e10 x 0.0038 = 0.039 (0.967, 1.117; p=0.3032) nmol/L for every 10 minutes. This association was not statistically significant, however. Beyond 30 minutes, there was a decrease in cortisol, which also was not statistically significant. For DHEA, there was a significant drop in salivary levels between waking and 30 minutes. The average rate of decrease is 0.824 nmol/L (0.774, 0.876; <0.0001) every 10 minutes. Beyond 30 minutes after waking, DHEA levels decreased significantly. 
+
+Then percentage change in salivary cortisol at 30 minutes compared to wake up is 12.19% (-9.79, 39.38; 0.302), an increase that is not statistically significant. However, salivary DHEA decreased at 30 minutes compared to baseline by 44% (33, 54).
+
+## Conclusions
+Conclusions from this study of 31 healthy controls assessing blood levels of cortisol and DHEA, and new methods of saliva sample collection include (a) there is a bias between electronic and booklet sample collection time, (b) there is good compliance, based on booklet sample time, in the collection of samples within 30 minutes of waking up. This compliance reduced substantially by 600 minutes after waking up. While there was an increase in salivary cortisol levels from waking to 30 minutes after, this increase was not statistically significant, the same is true for the rate of decline after the 30 minutes period. On the other hand, a significant decrease was observed for DHEA between waking and at 30 minutes which runs counter to expected diurnal pattern for this marker.
+
+For limitations, the presence of a substantial amount of observations with missing values for the electronic sample collection time, especially, posed a challenge and may have prevented an efficient comparison of electronic and booklet collection times. There may be heterogeneity in these marker levels based on subjects age, gender or other factors, these factors were not present in the provided dataset for assessment.
 
 
+```{r tabs_and_figs, echo=FALSE, message=FALSE, warning=FALSE}
+
+#Create data that aggregates (by taking mean over the 3 consecutive days of measurement) cortisol and DHEA as well as their log versions over the 
+f.aggreg1 <- merge(aggregate(cort.nmoll ~ SubjectID + samp.timepoint, data=f.data, FUN = mean),
+                 aggregate(dhea.nmoll ~ SubjectID + samp.timepoint, data=f.data, FUN = mean),
+                 by=c('SubjectID', 'samp.timepoint'))
+
+#I don't need the log version
+#f.aggreg2 <- merge(aggregate(log.cort.nmoll ~ SubjectID + samp.timepoint, data=f.data, FUN = mean),
+#                 aggregate(log.dhea.nmoll ~ SubjectID + samp.timepoint, data=f.data, FUN = mean),
+#                 by=c('SubjectID', 'samp.timepoint'))
+
+#f.aggreg <- merge(f.aggreg1, f.aggreg2, by=c('SubjectID', 'samp.timepoint'))
 
 
-```{r title1}
+#Create Table 1
+f.data$samp.timepoint.factor <- factor(f.data$samp.timepoint, levels = c(1, 2, 3, 4), 
+                                       labels = c("Waking", "30 Mins", "Bef.Lunch", "600 Mins"))
+tab1 <- f.data |>
+  tbl_summary(by = samp.timepoint.factor,
+    include = c('book.time.hrs', 'mems.time.hrs', 'book.interval.mins', 'mems.interval.mins', 'cort.nmoll', 'log.cort.nmoll', 'dhea.nmoll', 'log.dhea.nmoll'), 
+    statistic = list(all_continuous() ~ "{mean} ({sd})"),
+    digits = c('book.time.hrs', 'mems.time.hrs', 'book.interval.mins', 'mems.interval.mins', 'cort.nmoll', 'log.cort.nmoll', 'dhea.nmoll', 'log.dhea.nmoll') ~ 1,
+    
+    label=list(book.time.hrs~"Booklet Time (hrs)", mems.time.hrs~"Electronic Time (hrs)",
+               book.interval.mins~"Booklet Interval (mins)", mems.interval.mins~"Electronic  Interval (mins)",
+               cort.nmoll~"Cortisol (nmol/L)", log.cort.nmoll~"Log Cortisol (nmol/L)", dhea.nmoll~"DHEA (nmol/L)", log.dhea.nmoll~"Log DHEA (nmol/L)"), 
+    
+  missing_text = "NA (Missing)" ) |>
+  add_overall(last=TRUE) |>
+  add_n() |>
+  modify_header(label ~ "**Variable**") |> 
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Sample Time Point**") |>
+  modify_caption("**Distribution of subject characteristics by sample time point**") |>
+  bold_labels()
+ theme_gtsummary_compact()
+tab1
+
+# Convert to kableExtra and reduce font size/scale down
+#Google AI to the rescue on how to make tab1 fit on a page!
+#tab1 %>%
+#  as_kable_extra(booktabs = TRUE) %>%
+#  kableExtra::kable_styling(font_size = 7, latex_options = "scale_down")
+
+
+#Create box plots
+#Figure 1
+par(mfrow=c(2,2))
+boxplot(cort.nmoll ~ samp.timepoint, data=f.data, ylab='Salivary Cortisol level (nmol/L)', xlab='Sample Timepoint', cex.lab = 0.85)
+title(main = 'Figure 1a: Hormonal Levels by Sample Timepoint', adj=0, cex.main=1.1)
+boxplot(dhea.nmoll ~ samp.timepoint, data=f.data, ylab='Salivary DHEA level (nmol/L)', xlab='Sample Timepoint', cex.lab = 0.85)
+
+boxplot(cort.nmoll ~ samp.timepoint, data=f.aggreg1, ylab='Salivary Cortisol level (nmol/L)', xlab='Sample Timepoint', cex.lab = 0.85)
+title(main = 'Figure 1b: Aggregated (average) Hormonal Levels by Sample Timepoint', adj=0, cex.main=1.1)
+boxplot(dhea.nmoll ~ samp.timepoint, data=f.aggreg1, ylab='Salivary DHEA level (nmol/L)', xlab='Sample Timepoint', cex.lab = 0.85)
 
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+```{r Q1, echo=FALSE, message=FALSE, warning=FALSE}
+#Q1
+mod.q1 <- lmer(mems.interval.mins ~ book.interval.mins + (1 | SubjectID), data=f.data)
+#summary(mod.q1)
+#summary(mod.q1)$coefficients
+#confint(mod.q1)
+#Plot of this data, as dots with regression line and maybe confidence interval?
 
-```{r title2, echo=FALSE}
+#Extract 95% CI, coefficients, SE, and p-value from the model fit above
+q1.res<-round(cbind(summary(mod.q1)$coefficients[,c(1,2,5)], confint(mod.q1)[3:4,]), 3)
+rownames(q1.res) <- c('Intercept', 'Slope for Booklet Time')
+kable(
+  q1.res,
+  col.names = c("", "Estimate","Std. Err.", "P-Value","LL 95% CI", "UL 95% CI"),
+  caption = "Relationship between Booklet (predictor) and Electronic (outcome) Sample Collection Time",
+  digits = 3,
+  align = c("l", rep("r", ncol(q1.res) - 1)),
+  format = "markdown")
+
+#fitted and predicted values R-25 L07
+#lmer formula breakdown & G-matrix 25 L07
+
+#Marginal predictions for mems.interval.mins ~ book.interval.mins  
+newX.grid <- data.frame(book.interval.mins = seq(min(f.data$book.interval.mins, na.rm = TRUE), max(f.data$book.interval.mins, na.rm = TRUE), length.out = 200))
+pred_marg <- predict(mod.q1, newdata = newX.grid, re.form = NA)  # Obtains fixed effects only (re.form=NA ensures this)
+
+ggplot() +
+  geom_point(data = f.data, aes(book.interval.mins, mems.interval.mins), color = "grey50", alpha = 0.6) +
+  geom_line(data = cbind(newX.grid, pred = pred_marg), aes(book.interval.mins, pred), color = "lightblue", linewidth = 2) +
+  labs(title = "Figure 2: Electronic ~ Booklet model fit", y = "Predicted Electronic Sample Collection Time", x = "Booklet Sample Collection Time") +
+  theme_minimal()
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r Q2, echo=FALSE, message=FALSE, warning=FALSE}
+#Q2
+#gtsummary table
+#95% CI using epitools or other package
+#Consider including a plot
+#with(f.data[f.data$samp.timepoint %in% c(2,4), ], table(adhere.cat, samp.timepoint, exclude=NULL))
+#with(f.data[f.data$samp.timepoint %in% c(2,4), ], prop.table(table(adhere.cat, samp.timepoint), 2))
+
+#Create table of adherence by 2 timepoints of interest
+
+#subset f.data to select timepoints 2 and 4 of interest
+f.data.sub <- subset(f.data, samp.timepoint.factor %in% c("30 Mins", "600 Mins"))
+f.data.sub <- droplevels(f.data.sub)
+
+f.data.sub$adhere.fact <- factor(f.data.sub$adhere.cat, levels = c(1, 2, 3), 
+                                       labels = c("Good", "Adequate", "Poor"))
+
+tab3 <- f.data.sub |>
+  tbl_summary(
+    by = samp.timepoint.factor, include  = adhere.fact, type = all_categorical() ~ "categorical", 
+    percent  = "column", statistic = all_categorical() ~ "{n} ({p}%)", 
+    digits = 'adhere.fact' ~ 1, label=list(adhere.fact~"Adherence"), 
+    missing  = "ifany", missing_text = "(Missing)") |>
+  add_ci(method   = all_categorical() ~ "exact",        # Clopper–Pearson via binom.test() 
+         conf.level = 0.95, pattern  = "{stat} [{ci}]") |>
+  add_overall(last=TRUE) |>
+  add_n() |>
+  modify_header(label ~ "") |> 
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Sample Time Point**") |>
+  modify_caption("**Distribution of adherence to protocol-specified sample collection time points**") |>
+  bold_labels()
+  theme_gtsummary_compact()
+tab3
+
+```
+
+
+```{r Q3, echo=FALSE, message=FALSE, warning=FALSE}
+#Q3
+#Cortisol
+#mod3a <- lmer(log.cort.nmoll ~ book.interval.mins + (1 | SubjectID), data=f.data) #vs SubjectID.day and SubjectID.time
+mod3a <- lmer(log.cort.nmoll ~ book.interval.mins + I((book.interval.mins-30)*(book.interval.mins>30)) + (1 | SubjectID), data=f.data) #defining an indicator variable for the change point at 30mins
+#summary(mod3a)
+
+q3a.res<-round(cbind(summary(mod3a)$coefficients[,c(1,2,5)], confint(mod3a)[3:5,]), 4)
+rownames(q3a.res) <- c('Intercept', 'Booklet Interval (0, 30]', 'Booklet Interval (30, max]')
+#q3a.res
+
+
+#Linear hypothesis test using multcomp::glht
+mod3a.var <- names(fixef(mod3a))
+mod3a.var  <- setNames(rep(0, length(mod3a.var)), mod3a.var)
+mod3a.var["book.interval.mins"] <- 30
+mod3a.var <- rbind(compare_30_vs_0 = mod3a.var)
+mod3a.test  <- glht(mod3a, linfct = mod3a.var)
+
+#Extract results from a GLHT object
+#Credits: https://gist.github.com/ajpelu/194e721077ec045a2b864088908e7aca
+table_glht <- function(x) {
+  pq <- summary(x)$test
+  mtests <- cbind(pq$coefficients, pq$sigma, pq$tstat, pq$pvalues)
+  error <- attr(pq$pvalues, "error")
+  pname <- switch(x$alternativ, less = paste("Pr(<", ifelse(x$df ==0, "z", "t"), ")", sep = ""), 
+  greater = paste("Pr(>", ifelse(x$df == 0, "z", "t"), ")", sep = ""), two.sided = paste("Pr(>|",ifelse(x$df == 0, "z", "t"), "|)", sep = ""))
+  colnames(mtests) <- c("Estimate", "Std. Error", ifelse(x$df ==0, "z value", "t value"), pname)
+  return(mtests)
+}
+#table_glht(mod3a.test)
+
+
+
+#Q3
+#DHEA
+#mod3b <- lmer(log.dhea.nmoll ~ book.interval.mins + (1 | SubjectID), data=cort.dat2) #vs SubjectID.day and SubjectID.time
+mod3b <- lmer(log.dhea.nmoll ~ book.interval.mins + I((book.interval.mins-30)*(book.interval.mins>30)) + (1 | SubjectID), data=f.data)
+#summary(mod3b)
+
+q3b.res<-round(cbind(summary(mod3b)$coefficients[,c(1,2,5)], confint(mod3b)[3:5,]), 4)
+rownames(q3b.res) <- c('Intercept', 'Booklet Interval (0, 30]', 'Booklet Interval (30, max]')
+#q3b.res
+
+q3.res <- cbind(q3a.res, q3b.res)
+
+kable(
+  q3.res,
+  col.names = c("", "Estimate","Std. Err.", "P-Value","LL 95% CI", "UL 95% CI", 
+                "Estimate","Std. Err.", "P-Value","LL 95% CI", "UL 95% CI"),
+  caption = "Changes in Salivary Cortisol and DHEA over time",
+  digits = 4,
+  align = c("l", rep("r", ncol(q3.res) - 1)),
+  format = "markdown")
+
+
+#Linear hypothesis test using multcomp::glht
+mod3b.var <- names(fixef(mod3b))
+mod3b.var  <- setNames(rep(0, length(mod3b.var)), mod3b.var)
+mod3b.var["book.interval.mins"] <- 30
+mod3b.var <- rbind(compare_30_vs_0 = mod3b.var)
+mod3b.test  <- glht(mod3b, linfct = mod3b.var)
+
+#table_glht(mod3b.test)
+
+#Create a data frame of GLHT tests
+mod3.tests <- data.frame(rbind(table_glht(mod3a.test), table_glht(mod3b.test)))
+rownames(mod3.tests) <- c("Cortisol: 30mins vs Baseline", "DHEA: 30mins vs Baseline")
+mod3.tests$LL <- mod3.tests$Estimate - (1.96*mod3.tests$Std..Error)
+mod3.tests$UL <- mod3.tests$Estimate + (1.96*mod3.tests$Std..Error)
+mod3.tests$z.value <- NULL
+
+
+kable(
+  mod3.tests,
+  col.names = c("", "Estimate","Std. Err.", "P-Value","LL 95% CI", "UL 95% CI"),
+  caption = "Comparison of Salivary Cortisol and DHEA at 30 minutes vs Waking Time",
+  digits = 3,
+  align = c("l", rep("r", ncol(q3.res) - 1)),
+  format = "markdown")
+
+```
+
+
+
+\newpage
+## Reproducible Research Information
+
+GitHub repository for Project 0: https://github.com/yemiaj/BIOS6624/tree/main/Project0
+
+The README files in the main and sub-directories have been updated with comments to make them more informative.
+
+The raw file from Canvas provided for students was stored in a directory (/Project0/DataRaw/Project0_Clean_v2.csv) that is not on GitHub (due to .gitignore). However, the code /Project0/Code/P0_clean_and_analyses.R when applied to the raw file from Canvas can be used to generate the final analyses dataset (described below).
+
+After cleaning the raw dataset and selecting needed variables, the clean data can be found in /Project0/DataProcessed/Project0_data.csv. To recap, the file ‘Project0/Code/P0_clean_and_analyses.R’ imports the raw file from Canvas, cleans the raw file, writes a clean final .csv data to the /DataProcessed folder. This clean final data is then used in the /Project0/Reports/project0_report_YemiJegede.Rmd file to perform data analysis and generate a report.
+
