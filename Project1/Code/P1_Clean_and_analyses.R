@@ -3,6 +3,7 @@
 #Codes related to the cleaning and preliminary analysis of Project 1: Multicenter AIDS Cohort Study
 
 ######################
+library(gtsummary)
 
 # Import .csv file for Project 1
 hiv.dat0 <- read.csv('./Project1/DataRaw/hiv_6624_final.csv') 
@@ -34,22 +35,41 @@ hiv.dat <- hiv.dat0[hiv.dat0$years %in% c(0,2), c("newid", "years", "AGG_MENT", 
 # SMOKE: Smoking status | 1=Never smoked,2=Former smoker, 3=Current smoker, ''=Missing
 
 
+# Separate out year0 and year2
+hiv.dat.y0 <- hiv.dat[hiv.dat$years==0, ]
+hiv.dat.y2 <- hiv.dat[hiv.dat$years==2, ]
+
+#Rename the variables in the hiv.dat.y2 dataframe and add a suffix of ".2" to the variable names to differentiate from hiv.dat.y0
+names(hiv.dat.y2)[-1] <- paste0(names(hiv.dat.y2), '.', 2)[-1]
+#names(hiv.dat.y2) <- paste0(names(hiv.dat.y2), '.', 2)
+head(hiv.dat.y2)
+
+#Merge year0 and year2
+hiv.dat3 <- merge(hiv.dat.y0, hiv.dat.y2, by.x = 'newid', all.x = T, all.y = TRUE)
+
+#Since 'years' is a variable without NAs in the earlier hiv.dat dataframe, values of year.2 == NA can be used as indicator for lost to follow-up
+table(hiv.dat$years, exclude=NULL)
+hiv.dat3$ltfu <- ifelse(is.na(hiv.dat3$years.2), 1, 0) #1 == Yes, lost to follow-up
+
+#No character variable among these list of variables, so NAs will behave as expected 
+str(hiv.dat3)
+
 #Work on Table 1, Figure 1, and other descriptives
 with(hiv.dat[hiv.dat$years==0,], plot(LEU3N, VLOAD))
 with(hiv.dat[hiv.dat$years==0,], plot(AGG_MENT, AGG_PHYS))
 summary(lm(AGG_MENT ~ AGG_PHYS, data=hiv.dat[hiv.dat$years==0,]))
 
+
 #Create Table 1
-library(gtsummary)
-tab1 <- hiv.dat[hiv.dat$years==0, ] |>
+tab1 <- hiv.dat3[hiv.dat3$years==0, ] |> #Select for year 0 in the merged year0 and year2 data (this code is redundant)
   tbl_summary(by=hard_drugs,
-              include=names(hiv.dat)[c(-1, -2)],
+              include=c("AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD", "BMI", "RACE", "EDUCBAS", "age", "SMOKE"),
               statistic = list(all_continuous() ~ "{mean} ({sd})"),
               missing_text = "NA (Missing)") |>
   add_overall(last=TRUE)
 tab1
 
-tab2 <- hiv.dat[hiv.dat$years==2, ] |>
+tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select for year 2 in the merged year0 and year2 data (this code is necessary)
   tbl_summary(by=hard_drugs,
               include=names(hiv.dat)[c(-1, -2)],
               statistic = list(all_continuous() ~ "{mean} ({sd})"),
@@ -66,10 +86,6 @@ tbl_merge(
 #  but merge such that cases without data in both datasets are represented in the final merge
 #  create a variable based on this and include it in the descriptives
 
-# Separate out year0 and year2
-# dropout from year 0 to year 1, a 2 by 2 table of dropout/missing from year 0 to year 2
-hiv.dat1 <- hiv.dat[hiv.dat$years==0, ]
-hiv.dat2 <- hiv.dat[hiv.dat$years==2, ]
 
 
 #Then recode variables to binary or categorical as appropriate for analysis
