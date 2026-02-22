@@ -69,45 +69,79 @@ tab1 <- hiv.dat3[hiv.dat3$years==0, ] |> #Select for year 0 in the merged year0 
   
   tbl_summary(by = hard_drugs,
               
-              include = c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age", "RACE", "EDUCBAS", "SMOKE"),
+              include = c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age", "RACE", "EDUCBAS", "SMOKE", "ltfu"),
               
-              label = list(AGG_MENT ~ "SF36 MCS score", AGG_PHYS ~ "SF36 PCS score", LEU3N ~ "Number of CD4+ cells", 
-                         lg.VLOAD ~ "Log10 Standardized viral load (copies/ml)", BMI ~ "Body Mass Index (kg/m^2)", age ~ "Age", 
-                         RACE ~ "Race/Ethinicity", EDUCBAS ~ "Highest level of education attained", SMOKE ~ "Smoking Status"),
+              label = list(AGG_MENT ~ "Aggregate Mental QoL Score (using SF-36)", AGG_PHYS ~ "Aggregate Physical QoL Score (using SF-36)", LEU3N ~ "CD4+ T cell count", 
+                         lg.VLOAD ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)", BMI ~ "Body Mass Index (kg/m^2)", age ~ "Age at visit (years)", 
+                         RACE ~ "Race/Ethinicity Category", EDUCBAS ~ "Highest Level of Education", SMOKE ~ "Smoking Status", ltfu ~ "Lost to follow-up (between Year 0 and 2)"),
               
               type = list(c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age") ~ "continuous",
-                         c("RACE", "EDUCBAS", "SMOKE") ~ "categorical"),
+                         c("RACE", "EDUCBAS", "SMOKE","ltfu") ~ "categorical"),
               
               statistic = list(all_continuous() ~ "{mean} ({sd})", 
                                all_categorical() ~ "{n} ({p}%)"),
 
-              digits = list(c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age") ~ 1,
-                            c("RACE", "EDUCBAS", "SMOKE") ~ 0),
-              
-              missing_text = "NA (Missing)") |>
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              #missing="ifany",
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
   add_overall(last=TRUE)
 tab1
+
+#Add QoL foot note
 #Include N and % for the missing/NA
 #Label the levels of the categorical variables
 #Add headers and footnote as appropriate
+#f.data$samp.timepoint.factor <- factor(f.data$samp.timepoint, levels = c(1, 2, 3, 4), 
+#                                       labels = c("Waking", "30 Mins", "Bef.Lunch", "600 Mins"))
+#Add p-value, for all. Explain this and note small sample sizes. Reproduce yourself.
+#Add difference in percentages/means
+
 
 
 tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select for year 2 in the merged year0 and year2 data (this code is necessary)
-  tbl_summary(by=hard_drugs,
-              include=names(hiv.dat)[c(-1, -2)],
-              statistic = list(all_continuous() ~ "{mean} ({sd})"),
-              missing_text = "NA (Missing)") |>
+  
+  tbl_summary(by = hard_drugs,
+              
+              include = c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "lg.VLOAD.2", "BMI.2", "age.2", "RACE.2", "EDUCBAS.2", "SMOKE.2", "ADH.2"),
+              
+              label = list(AGG_MENT.2 ~ "Aggregate Mental QoL Score (using SF-36)", AGG_PHYS.2 ~ "Aggregate Physical QoL Score (using SF-36)", LEU3N.2 ~ "CD4+ T cell count", 
+                           lg.VLOAD.2 ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)", BMI.2 ~ "Body Mass Index (kg/m^2)", age.2 ~ "Age at visit (years)", 
+                           RACE.2 ~ "Race/Ethinicity Category", EDUCBAS.2 ~ "Highest Level of Education", SMOKE.2 ~ "Smoking Status", ADH.2 ~ "Adherence to meds since last visit"),
+              
+              type = list(c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "lg.VLOAD.2", "BMI.2", "age.2") ~ "continuous",
+                          c("RACE.2", "EDUCBAS.2", "SMOKE.2", "ADH.2") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd})", 
+                               all_categorical() ~ "{n} ({p}%)"),
+              
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              #missing="ifany",
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
   add_overall(last=TRUE)
 tab2
 
+
+
+#Separate out year0 and year2 and rename.
+#Rename the column in tab2$table_bosy instead
+tab2b <- tab2
+tab2b$table_body$variable <- substr(tab2b$table_body$variable, 1, nchar(tab2b$table_body$variable) - 2)
+
 tbl_merge(
-  tbls = list(tab1, tab2),
+  tbls = list(tab1, tab2b),
   tab_spanner = c("**Baseline**", "**Follow-up (Year 2)**")
   )
 
 #To have a variable of number lost to follow-up, separate and merge year=0 and year=2 into each other 
 #  but merge such that cases without data in both datasets are represented in the final merge
 #  create a variable based on this and include it in the descriptives
+
+
+
 
 
 
