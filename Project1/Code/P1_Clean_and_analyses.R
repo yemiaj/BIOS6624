@@ -157,22 +157,43 @@ names(hiv.dat4)[-1] <- c("phy.qol", "phy.qol.y2", "ment.qol", "ment.qol.y2", "cd
                          "drug.use", "adhere.y2", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")
 
 hiv.dat4$bmi <- ifelse(hiv.dat4$BMI >= 10.8 & hiv.dat4$BMI <= 70.1, hiv.dat4$BMI, NA) #the limit of plausible values obtained from the codebook
+
 hiv.dat4$white.nh <- ifelse(hiv.dat4$RACE==1, 1, 0) 
+
 hiv.dat4$college <- ifelse(hiv.dat4$EDUCBAS >= 5, 1, 0) 
+
 hiv.dat4$frmr.smkr <- ifelse(hiv.dat4$SMOKE == 2, 1, 0) 
 hiv.dat4$curnt.smkr <- ifelse(hiv.dat4$SMOKE == 3, 1, 0) 
+
 hiv.dat4$adh2 <- ifelse(hiv.dat4$adhere.y2 == 2, 1, 0) 
 hiv.dat4$adh3 <- ifelse(hiv.dat4$adhere.y2 == 3, 1, 0) 
 hiv.dat4$adh4 <- ifelse(hiv.dat4$adhere.y2 == 4, 1, 0) 
 
 
+#Preliminary models 
+summary(fit0 <- lm(phy.qol.y2 ~ drug.use, hiv.dat4))
+summary(fit1 <- lm(phy.qol.y2 ~ phy.qol + drug.use, hiv.dat4))
+summary(fit2 <- lm(phy.qol.y2 ~ phy.qol + drug.use + adh2 + adh3 + adh4, hiv.dat4))
+
+summary(fit0 <- lm(ment.qol.y2 ~ drug.use, hiv.dat4))
+summary(fit1 <- lm(ment.qol.y2 ~ ment.qol + drug.use, hiv.dat4))
+summary(fit2 <- lm(ment.qol.y2 ~ ment.qol + drug.use + adh2 + adh3 + adh4, hiv.dat4))
+
+summary(fit0 <- lm(cd4.count.y2 ~ drug.use, hiv.dat4))
+summary(fit1 <- lm(cd4.count.y2 ~ cd4.count + drug.use, hiv.dat4))
+summary(fit2 <- lm(cd4.count.y2 ~ cd4.count + drug.use + adh2 + adh3 + adh4, hiv.dat4))
+
+summary(fit0 <- lm(lg10.vload.y2 ~ drug.use, hiv.dat4))
+summary(fit1 <- lm(lg10.vload.y2 ~ lg10.vload + drug.use, hiv.dat4))
+summary(fit2 <- lm(lg10.vload.y2 ~ lg10.vload + drug.use + adh2 + adh3 + adh4, hiv.dat4))
 
 #Complete case data
 
 
+summary(fit3 <- lm(phy.qol.y2 ~ phy.qol + drug.use + age + bmi + white.nh + college + frmr.smkr + curnt.smkr + adh2 + adh3 + adh4, hiv.dat4))
 
 
-
+ 
 
 #Keep a dataframe containing the original variable so you can describe the exclusions
 # Work on NAs, 
