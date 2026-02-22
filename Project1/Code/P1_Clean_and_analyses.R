@@ -62,6 +62,7 @@ str(hiv.dat3)
 with(hiv.dat[hiv.dat$years==0,], plot(LEU3N, VLOAD))
 with(hiv.dat[hiv.dat$years==0,], plot(AGG_MENT, AGG_PHYS))
 summary(lm(AGG_MENT ~ AGG_PHYS, data=hiv.dat[hiv.dat$years==0,]))
+Box plot or histogram of all outcomes
 
 #Create Table 1
 #Credits & excellent resource: https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html
@@ -86,6 +87,7 @@ tab1 <- hiv.dat3[hiv.dat3$years==0, ] |> #Select for year 0 in the merged year0 
               #missing="ifany",
               missing_text = "NA (missing)",
               missing_stat = "{N_miss} ({p_miss}%)") |>
+  add_p() |>
   add_overall(last=TRUE)
 tab1
 
@@ -97,7 +99,6 @@ tab1
 #                                       labels = c("Waking", "30 Mins", "Bef.Lunch", "600 Mins"))
 #Add p-value, for all. Explain this and note small sample sizes. Reproduce yourself.
 #Add difference in percentages/means
-
 
 
 tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select for year 2 in the merged year0 and year2 data (this code is necessary)
@@ -121,13 +122,17 @@ tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select fo
               #missing="ifany",
               missing_text = "NA (missing)",
               missing_stat = "{N_miss} ({p_miss}%)") |>
+  add_p() |>
   add_overall(last=TRUE)
 tab2
 
-
-
 #Separate out year0 and year2 and rename.
 #Rename the column in tab2$table_bosy instead
+
+#To have a variable of number lost to follow-up, separate and merge year=0 and year=2 into each other 
+#  but merge such that cases without data in both datasets are represented in the final merge
+#  create a variable based on this and include it in the descriptives
+
 tab2b <- tab2
 tab2b$table_body$variable <- substr(tab2b$table_body$variable, 1, nchar(tab2b$table_body$variable) - 2)
 
@@ -136,21 +141,45 @@ tbl_merge(
   tab_spanner = c("**Baseline**", "**Follow-up (Year 2)**")
   )
 
-#To have a variable of number lost to follow-up, separate and merge year=0 and year=2 into each other 
-#  but merge such that cases without data in both datasets are represented in the final merge
-#  create a variable based on this and include it in the descriptives
+#Note that NA (missing) is split for smoking status and pasted into lost to FU
+#Make the ltfu variable work for year=2 too
+
+
+
+
+#Data cleaning
+#Select needed variables so that complete case function does not exclude needed rows
+hiv.dat4 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, 
+                     c("newid", "AGG_PHYS", "AGG_PHYS.2", "AGG_MENT", "AGG_MENT.2", "LEU3N", "LEU3N.2", "lg.VLOAD", "lg.VLOAD.2",
+                       "hard_drugs", "ADH.2", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
+
+names(hiv.dat4)[-1] <- c("phy.qol", "phy.qol.y2", "ment.qol", "ment.qol.y2", "cd4.count", "cd4.count.y2", "lg10.vload", "lg10.vload.y2", 
+                         "drug.use", "adhere.y2", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")
+
+hiv.dat4$bmi <- ifelse(hiv.dat4$BMI >= 10.8 & hiv.dat4$BMI <= 70.1, hiv.dat4$BMI, NA) #the limit of plausible values obtained from the codebook
+hiv.dat4$white.nh <- ifelse(hiv.dat4$RACE==1, 1, 0) 
+hiv.dat4$college <- ifelse(hiv.dat4$EDUCBAS >= 5, 1, 0) 
+hiv.dat4$frmr.smkr <- ifelse(hiv.dat4$SMOKE == 2, 1, 0) 
+hiv.dat4$curnt.smkr <- ifelse(hiv.dat4$SMOKE == 3, 1, 0) 
+hiv.dat4$adh2 <- ifelse(hiv.dat4$adhere.y2 == 2, 1, 0) 
+hiv.dat4$adh3 <- ifelse(hiv.dat4$adhere.y2 == 3, 1, 0) 
+hiv.dat4$adh4 <- ifelse(hiv.dat4$adhere.y2 == 4, 1, 0) 
+
+
+
+#Complete case data
 
 
 
 
 
 
-#Then recode variables to binary or categorical as appropriate for analysis
-for (i in 1:ncol(hiv.dat)) print(table(is.na(hiv.dat[,i]))) #See the observations with NAs
+#Keep a dataframe containing the original variable so you can describe the exclusions
 # Work on NAs, 
 # Review outliers and plausible values for continuous variables (ask instructor)
 # Recode categorical variables as appropriate for analysis
 # Apply transformations as appropriate
+
 
 
 
