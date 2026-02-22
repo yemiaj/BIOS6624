@@ -37,7 +37,8 @@ Question to investigator/instructor (these were clarified during 02/13 office ho
 Next questions to ask investigators:
     Can codebook be on GitHub or add to .gititnore?
     Always adjust for specified variables, no model building for these predictors? How about pairwise interactions between covariate pairs?
-    It makes sense to filter our outliers and/or unreasonable values before creating Table 1 (I think so)
+    It makes sense to filter our outliers and/or unreasonable values before creating Table 1 (I think so), including log10 and other tranformations?
+    
 
 Analysis ideas per me:
     Model structure: 2-yr response = baseline_response + hard_drugs + covariates
