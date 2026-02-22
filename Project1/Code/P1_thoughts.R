@@ -1,3 +1,5 @@
+This document contains comments, class discussions, questions, response to questions, and my thoughts and analysis plans for Project 1
+
 Collation of Project 1 Class Discussions (on 02/09/2026, )
 
 Read, aggregate, and incorporate comments from Project 1 Analysis Plan and Project 0 grading into this analysis/report
@@ -13,7 +15,7 @@ Covariates (per investigator):
   age, BMI, smoking status, education, and race/eth, and adherence (important predictor)
 
 Per instructor: 
-    Year 0 (use), Year 1 (not use), focus on year 2, not year 2 above 
+    Year 0 (use), Year 1 (not use), focus on year 2, not above year 2 
     Baseline drug use only (year=0)
     This is an observational, not randomized, study, so we care about baseline values.
     Clinically meaningful effect (2-sided) ==> VLOAD: +/- log10 0.5 change, CD4: +/- 50 cells/ml, QoL: +/- 2pts
@@ -26,20 +28,33 @@ Research question:
   2 Research questions
 
 Question to investigator/instructor (these were clarified during 02/13 office hours):
-    Clarify year=0 and year=2 are only of interest, yes focus on year=0 and year=2 only
-    Intro section should be limited to what is on Canvas, yes
-    Since Bayesian and non-Bayesian and both needs to be explained, are we still limited by the page requirements?, yes
-    Use longitudinal data approaches or extract baseline values and analyze as flat, if left to me, then use longitudinal methods, you could do this but it is not necessary and makes the Bayesian analysis harder
-    Do not go looking for variables to adjust for, just focus on the listed ones, yes
-    To understand the rationale for year=2, is it the case that the duration of HAART is 2 years such that 1 is intermediate time and 3+ is follow-up? (not asked) again, focus on 1 and 2
+    Clarify year=0 and year=2 are only of interest; yes focus on year=0 and year=2 only
+    Intro section should be limited to what is on Canvas; yes
+    Since Bayesian and non-Bayesian and both needs to be explained, are we still limited by the page requirements; yes
+    Use longitudinal data approaches or extract baseline values and analyze as flat, if left to me, then use longitudinal methods; you could do this but it is not necessary and makes the Bayesian analysis harder
+    Do not go looking for variables to adjust for, just focus on the listed ones; yes
+    To understand the rationale for year=2, is it the case that the duration of HAART is 2 years such that 1 is intermediate time and 3+ is follow-up; (not asked) again, focus on 1 and 2
     The point of frequentist is largely for sanity check
-    
+    Always adjust for specified variables, no model building for these predictors? How about pairwise interactions between covariate pairs? [from clas snotes, TRUE that no model building]
+        
+        
 Next questions to ask investigators:
     Can codebook be on GitHub or add to .gititnore?
-    Always adjust for specified variables, no model building for these predictors? How about pairwise interactions between covariate pairs?
-    It makes sense to filter our outliers and/or unreasonable values before creating Table 1 (I think so), including log10 and other tranformations?
-    
+    It makes sense to filter our outliers and/or unreasonable values before creating Table 1 (I dont think so), including log10 and other tranformations?
+    Range of BMI values shown in the codebook useful?
+    Recode adherence to 95% or higher adherence vs <95%?
 
+Comments from class notes:
+No model selection, adjust for specified variables
+Use baseline BMI
+Recode Race as White-NH vs Other
+Recode Education as 4 years of college or higher vs Other
+Use the baseline version of all covariates
+
+
+
+
+    
 Analysis ideas per me:
     Model structure: 2-yr response = baseline_response + hard_drugs + covariates
     Model structure: 2-yr response = baseline_response + hard_drugs + hard_drugs:adherence + covariates
@@ -54,6 +69,10 @@ Todos per me:
   Sample size flow chart, and missingness
   Comment in the report on how dropout may impact result, including dropout from baseline to year=2, and missing observations
   Differentiate between dropout and missingness
+  Weighted analysis of propensity to use hard drugs (ask the professor).
+  
+  
+  
   
   
   #Extract the label of all variables and paste here.
@@ -94,7 +113,7 @@ Todos per me:
   
   
   
-Insights from PSA worksheet that may be helpful 
+Some insights from PSA worksheet solution document that may be helpful 
 PSA outcome is skewed; prostate weight, cancer volume may be skewed
 BPH lot of zeros; most assumptions is about the error. May attempt to binarize BPH
 Right skew: log transform; big outlier (ask investigator; said remove)
