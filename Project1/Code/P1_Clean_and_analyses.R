@@ -11,9 +11,14 @@ hiv.dat0 <- read.csv('./Project1/DataRaw/hiv_6624_final.csv')
 # See variable types and values
 str(hiv.dat0) 
 
+#Create log10 transformed VLOAD, and drop the original version.
+hiv.dat0$lg.VLOAD <- log10(hiv.dat0$VLOAD)
+
 # Select variables of interest to this project, and at the same time limit data to years of interest (year=0 and year=2)
-hiv.dat <- hiv.dat0[hiv.dat0$years %in% c(0,2), c("newid", "years", "AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD", 
+hiv.dat <- hiv.dat0[hiv.dat0$years %in% c(0,2), c("newid", "years", "AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", 
                                                   "hard_drugs", "ADH", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
+
+
 
 # Labels of variables of interest in this analysis, copied from the codebook provided and found on Canvas.
 # newid: deidentified ID
@@ -34,7 +39,6 @@ hiv.dat <- hiv.dat0[hiv.dat0$years %in% c(0,2), c("newid", "years", "AGG_MENT", 
 # age: Age at visit 
 # SMOKE: Smoking status | 1=Never smoked,2=Former smoker, 3=Current smoker, ''=Missing
 
-
 # Separate out year0 and year2
 hiv.dat.y0 <- hiv.dat[hiv.dat$years==0, ]
 hiv.dat.y2 <- hiv.dat[hiv.dat$years==2, ]
@@ -45,7 +49,7 @@ names(hiv.dat.y2)[-1] <- paste0(names(hiv.dat.y2), '.', 2)[-1]
 head(hiv.dat.y2)
 
 #Merge year0 and year2
-hiv.dat3 <- merge(hiv.dat.y0, hiv.dat.y2, by.x = 'newid', all.x = T, all.y = TRUE)
+hiv.dat3 <- merge(hiv.dat.y0, hiv.dat.y2, by.x = 'newid', all.x = TRUE, all.y = TRUE)
 
 #Since 'years' is a variable without NAs in the earlier hiv.dat dataframe, values of year.2 == NA can be used as indicator for lost to follow-up
 table(hiv.dat$years, exclude=NULL)
@@ -59,15 +63,34 @@ with(hiv.dat[hiv.dat$years==0,], plot(LEU3N, VLOAD))
 with(hiv.dat[hiv.dat$years==0,], plot(AGG_MENT, AGG_PHYS))
 summary(lm(AGG_MENT ~ AGG_PHYS, data=hiv.dat[hiv.dat$years==0,]))
 
-
 #Create Table 1
+#Credits & excellent resource: https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html
 tab1 <- hiv.dat3[hiv.dat3$years==0, ] |> #Select for year 0 in the merged year0 and year2 data (this code is redundant)
-  tbl_summary(by=hard_drugs,
-              include=c("AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD", "BMI", "RACE", "EDUCBAS", "age", "SMOKE"),
-              statistic = list(all_continuous() ~ "{mean} ({sd})"),
+  
+  tbl_summary(by = hard_drugs,
+              
+              include = c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age", "RACE", "EDUCBAS", "SMOKE"),
+              
+              label = list(AGG_MENT ~ "SF36 MCS score", AGG_PHYS ~ "SF36 PCS score", LEU3N ~ "Number of CD4+ cells", 
+                         lg.VLOAD ~ "Log10 Standardized viral load (copies/ml)", BMI ~ "Body Mass Index (kg/m^2)", age ~ "Age", 
+                         RACE ~ "Race/Ethinicity", EDUCBAS ~ "Highest level of education attained", SMOKE ~ "Smoking Status"),
+              
+              type = list(c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age") ~ "continuous",
+                         c("RACE", "EDUCBAS", "SMOKE") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd})", 
+                               all_categorical() ~ "{n} ({p}%)"),
+
+              digits = list(c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age") ~ 1,
+                            c("RACE", "EDUCBAS", "SMOKE") ~ 0),
+              
               missing_text = "NA (Missing)") |>
   add_overall(last=TRUE)
 tab1
+#Include N and % for the missing/NA
+#Label the levels of the categorical variables
+#Add headers and footnote as appropriate
+
 
 tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select for year 2 in the merged year0 and year2 data (this code is necessary)
   tbl_summary(by=hard_drugs,
