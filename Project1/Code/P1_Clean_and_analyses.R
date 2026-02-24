@@ -10,17 +10,17 @@ hiv.dat0 <- read.csv('./Project1/DataRaw/hiv_6624_final.csv')
 
 # See variable types and values
 str(hiv.dat0) 
+#None of these variables is character/factor
 
-#Create log10 transformed VLOAD, and drop the original version.
+#Create log10 transformed VLOAD, and keep the original version.
 hiv.dat0$lg.VLOAD <- log10(hiv.dat0$VLOAD)
 
-# Select variables of interest to this project, and at the same time limit data to years of interest (year=0 and year=2)
-hiv.dat <- hiv.dat0[hiv.dat0$years %in% c(0,2), c("newid", "years", "AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", 
-                                                  "hard_drugs", "ADH", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
+# Select variables of interest to this project, and at the same time limit data to years of interest, i.e. year=0 and year=2
+hiv.dat <- hiv.dat0[hiv.dat0$years %in% c(0,2), c("newid", "years", "AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD","lg.VLOAD", 
+                                                  "hard_drugs","ADH", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
 
-
-
-# Labels of variables of interest in this analysis, copied from the codebook provided and found on Canvas.
+# Labels of variables of interest in this analysis. This was copied from the codebook provided and found on Canvas.
+# 
 # newid: deidentified ID
 # years: years since initiating ART | 0=baseline visit (before ART), 1=1 year, ..., 8=8years, ''=Missing
 # 
@@ -39,45 +39,65 @@ hiv.dat <- hiv.dat0[hiv.dat0$years %in% c(0,2), c("newid", "years", "AGG_MENT", 
 # age: Age at visit 
 # SMOKE: Smoking status | 1=Never smoked,2=Former smoker, 3=Current smoker, ''=Missing
 
+#Assign and label levels for categorical variables
+hiv.dat$hard_drugs <- factor(hiv.dat$hard_drugs, levels = c(0, 1), labels = c("No", "Yes"))
+hiv.dat$RACE <- factor(hiv.dat$RACE, levels = c(1, 2, 3, 4, 7, 8), labels = c("White, non-Hispanic", "White, Hispanic", "Black, non-Hispanic",
+                                                                                "Black, Hispanic", "Other", "Other Hispanic"))
+hiv.dat$EDUCBAS <- factor(hiv.dat$EDUCBAS, levels = c(1, 2, 3, 4, 5, 6, 7), labels = c("8th grade or less", "9th to 11th grade", "12th grade",
+                                                                                       "1+ year college (but no degree)", "Four years college", 
+                                                                                       "Some graduate work", "Post-graduate degree"))
+hiv.dat$SMOKE <- factor(hiv.dat$SMOKE, levels = c(1, 2, 3), labels = c("Never smoked", "Former smoker", "Current smoker"))
+hiv.dat$ADH <- factor(hiv.dat$ADH, levels = c(1, 2, 3, 4), labels = c("100%", "95 - 99%", "75 - 94%", "<75%"))
+
+
 # Separate out year0 and year2
 hiv.dat.y0 <- hiv.dat[hiv.dat$years==0, ]
 hiv.dat.y2 <- hiv.dat[hiv.dat$years==2, ]
 
-#Rename the variables in the hiv.dat.y2 dataframe and add a suffix of ".2" to the variable names to differentiate from hiv.dat.y0
+table(duplicated(hiv.dat.y0$newid)) #Year 0 data is flat and consists of 715 unique observations
+table(duplicated(hiv.dat.y2$newid)) #Year 2 data is flat and consists of 506 unique observations
+
+#Rename the variables in the hiv.dat.y2 dataframe and add a suffix of ".2" to the variable names to differentiate from the same variables found in hiv.dat.y0
 names(hiv.dat.y2)[-1] <- paste0(names(hiv.dat.y2), '.', 2)[-1]
-#names(hiv.dat.y2) <- paste0(names(hiv.dat.y2), '.', 2)
 head(hiv.dat.y2)
 
-#Merge year0 and year2
+#Merge year0 and year2, and keep all rows of data, including those in year0 but not year2
 hiv.dat3 <- merge(hiv.dat.y0, hiv.dat.y2, by.x = 'newid', all.x = TRUE, all.y = TRUE)
 
-#Since 'years' is a variable without NAs in the earlier hiv.dat dataframe, values of year.2 == NA can be used as indicator for lost to follow-up
-table(hiv.dat$years, exclude=NULL)
-hiv.dat3$ltfu <- ifelse(is.na(hiv.dat3$years.2), 1, 0) #1 == Yes, lost to follow-up
+#Because 'years' is a variable without NAs in the earlier hiv.dat data frame, values of year.2 == NA can be used as indicator for lost to follow-up
+#table(hiv.dat$years, exclude=NULL)
+table(hiv.dat3$years, hiv.dat3$years.2, exclude=NULL) #
+hiv.dat3$lost.fu <- ifelse(is.na(hiv.dat3$years.2), 1, 0) #1 == Yes, lost to follow-up
+hiv.dat3$lost.fu <- factor(hiv.dat3$lost.fu, levels = c(0, 1), labels = c("No", "Yes"))
 
 #No character variable among these list of variables, so NAs will behave as expected 
 str(hiv.dat3)
+
+
 
 #Work on Table 1, Figure 1, and other descriptives
 with(hiv.dat[hiv.dat$years==0,], plot(LEU3N, VLOAD))
 with(hiv.dat[hiv.dat$years==0,], plot(AGG_MENT, AGG_PHYS))
 summary(lm(AGG_MENT ~ AGG_PHYS, data=hiv.dat[hiv.dat$years==0,]))
-Box plot or histogram of all outcomes
+#Box plot or histogram of all outcomes
+
+
 
 #Create Table 1
 #Credits & excellent resource: https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html
-tab1 <- hiv.dat3[hiv.dat3$years==0, ] |> #Select for year 0 in the merged year0 and year2 data (this code is redundant)
+tab1 <- hiv.dat3[hiv.dat3$years==0, ] |> #Select for year 0 in the merged year0 and year2 data
   
   tbl_summary(by = hard_drugs,
               
-              include = c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age", "RACE", "EDUCBAS", "SMOKE", "ltfu"),
+              include = c("AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD", "lg.VLOAD", "BMI", "age", "RACE", "EDUCBAS", "SMOKE", "lost.fu"),
               
-              label = list(AGG_MENT ~ "Aggregate Mental QoL Score (using SF-36)", AGG_PHYS ~ "Aggregate Physical QoL Score (using SF-36)", LEU3N ~ "CD4+ T cell count", 
-                         lg.VLOAD ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)", BMI ~ "Body Mass Index (kg/m^2)", age ~ "Age at visit (years)", 
-                         RACE ~ "Race/Ethinicity Category", EDUCBAS ~ "Highest Level of Education", SMOKE ~ "Smoking Status", ltfu ~ "Lost to follow-up (between Year 0 and 2)"),
+              label = list(AGG_MENT ~ "Aggregate Mental Quality of Life Score", AGG_PHYS ~ "Aggregate Physical Quality of Life Score", LEU3N ~ "CD4+ T cell count",
+                           VLOAD ~ "Standardized Viral Load (HIV copies per mL of blood)", lg.VLOAD ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)", 
+                           BMI ~ "Body Mass Index (kg/m^2)", age ~ "Age at visit (years)", RACE ~ "Race, Ethinicity Category", EDUCBAS ~ "Highest Level of Education", 
+                           SMOKE ~ "Smoking Status", lost.fu ~ "Lost to follow-up (between Year 0 and 2)"),
               
-              type = list(c("AGG_MENT", "AGG_PHYS", "LEU3N", "lg.VLOAD", "BMI", "age") ~ "continuous",
-                         c("RACE", "EDUCBAS", "SMOKE","ltfu") ~ "categorical"),
+              type = list(c("AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD", "lg.VLOAD", "BMI", "age") ~ "continuous",
+                         c("RACE", "EDUCBAS", "SMOKE", "lost.fu") ~ "categorical"),
               
               statistic = list(all_continuous() ~ "{mean} ({sd})", 
                                all_categorical() ~ "{n} ({p}%)"),
@@ -87,31 +107,25 @@ tab1 <- hiv.dat3[hiv.dat3$years==0, ] |> #Select for year 0 in the merged year0 
               #missing="ifany",
               missing_text = "NA (missing)",
               missing_stat = "{N_miss} ({p_miss}%)") |>
-  add_p() |>
+  add_p(test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |> #Argument within add_p() is needed for exact test to run without an error message
   add_overall(last=TRUE)
 tab1
 
-#Add QoL foot note
-#Include N and % for the missing/NA
-#Label the levels of the categorical variables
 #Add headers and footnote as appropriate
-#f.data$samp.timepoint.factor <- factor(f.data$samp.timepoint, levels = c(1, 2, 3, 4), 
-#                                       labels = c("Waking", "30 Mins", "Bef.Lunch", "600 Mins"))
-#Add p-value, for all. Explain this and note small sample sizes. Reproduce yourself.
-#Add difference in percentages/means
+#Add difference in percentages/means (not necessary)
 
-
-tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select for year 2 in the merged year0 and year2 data (this code is necessary)
+tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select for year 2 in the merged year0 and year2 data
   
   tbl_summary(by = hard_drugs,
               
-              include = c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "lg.VLOAD.2", "BMI.2", "age.2", "RACE.2", "EDUCBAS.2", "SMOKE.2", "ADH.2"),
+              include = c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "VLOAD.2", "lg.VLOAD.2", "BMI.2", "age.2", "RACE.2", "EDUCBAS.2", "SMOKE.2", "ADH.2"),
               
-              label = list(AGG_MENT.2 ~ "Aggregate Mental QoL Score (using SF-36)", AGG_PHYS.2 ~ "Aggregate Physical QoL Score (using SF-36)", LEU3N.2 ~ "CD4+ T cell count", 
-                           lg.VLOAD.2 ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)", BMI.2 ~ "Body Mass Index (kg/m^2)", age.2 ~ "Age at visit (years)", 
-                           RACE.2 ~ "Race/Ethinicity Category", EDUCBAS.2 ~ "Highest Level of Education", SMOKE.2 ~ "Smoking Status", ADH.2 ~ "Adherence to meds since last visit"),
+              label = list(AGG_MENT.2 ~ "Aggregate Mental Quality of Life Score", AGG_PHYS.2 ~ "Aggregate Physical Quality of Life Score", LEU3N.2 ~ "CD4+ T cell count", 
+                           VLOAD.2 ~ "Standardized Viral Load (HIV copies per mL of blood)", lg.VLOAD.2 ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)",
+                           BMI.2 ~ "Body Mass Index (kg/m^2)", age.2 ~ "Age at visit (years)", RACE.2 ~ "Race, Ethinicity Category", EDUCBAS.2 ~ "Highest Level of Education", 
+                           SMOKE.2 ~ "Smoking Status", ADH.2 ~ "Adherence to meds taken since last visit"),
               
-              type = list(c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "lg.VLOAD.2", "BMI.2", "age.2") ~ "continuous",
+              type = list(c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "VLOAD.2", "lg.VLOAD.2", "BMI.2", "age.2") ~ "continuous",
                           c("RACE.2", "EDUCBAS.2", "SMOKE.2", "ADH.2") ~ "categorical"),
               
               statistic = list(all_continuous() ~ "{mean} ({sd})", 
@@ -122,33 +136,23 @@ tab2 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, ] |> #Select fo
               #missing="ifany",
               missing_text = "NA (missing)",
               missing_stat = "{N_miss} ({p_miss}%)") |>
-  add_p() |>
+  add_p(test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |>
   add_overall(last=TRUE)
 tab2
 
-#Separate out year0 and year2 and rename.
-#Rename the column in tab2$table_bosy instead
 
-#To have a variable of number lost to follow-up, separate and merge year=0 and year=2 into each other 
-#  but merge such that cases without data in both datasets are represented in the final merge
-#  create a variable based on this and include it in the descriptives
-
+#For both gtsummary objects to merge properly into a single table, rename the variable name in tab2 so all the variables have a unique name
+#Use a duplicate of tab2 for this task
 tab2b <- tab2
 tab2b$table_body$variable <- substr(tab2b$table_body$variable, 1, nchar(tab2b$table_body$variable) - 2)
 
-tbl_merge(
-  tbls = list(tab1, tab2b),
-  tab_spanner = c("**Baseline**", "**Follow-up (Year 2)**")
-  )
-
+tab1.full <- tbl_merge(tbls = list(tab1, tab2b), tab_spanner = c("**Baseline**", "**Follow-up (Year 2)**"))
 #Note that NA (missing) is split for smoking status and pasted into lost to FU
 #Make the ltfu variable work for year=2 too
 
 
-
-
 #Data cleaning
-#Select needed variables so that complete case function does not exclude needed rows
+#Select needed variables so that complete case function does not exclude needed rows when unneeded variable with missing is included
 hiv.dat4 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2, 
                      c("newid", "AGG_PHYS", "AGG_PHYS.2", "AGG_MENT", "AGG_MENT.2", "LEU3N", "LEU3N.2", "lg.VLOAD", "lg.VLOAD.2",
                        "hard_drugs", "ADH.2", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
@@ -156,7 +160,14 @@ hiv.dat4 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2,
 names(hiv.dat4)[-1] <- c("phy.qol", "phy.qol.y2", "ment.qol", "ment.qol.y2", "cd4.count", "cd4.count.y2", "lg10.vload", "lg10.vload.y2", 
                          "drug.use", "adhere.y2", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")
 
-hiv.dat4$bmi <- ifelse(hiv.dat4$BMI >= 10.8 & hiv.dat4$BMI <= 70.1, hiv.dat4$BMI, NA) #the limit of plausible values obtained from the codebook
+hiv.dat4$adh.y2 <- ifelse(hiv.dat4$adhere.y2 <=2, 1, 0) #>=95% vs <95% 
+
+
+# ADH: Adherence to meds taken since last visit | 1=100%, 2=95-99%, 3=75-94%, 4= <75%, ''=Missing
+
+
+#The limit of plausible values for BMI used below was obtained from the codebook (it is appropriate here and excludes -1(n=7), 514(n=1), and 999 (n=5))
+hiv.dat4$bmi <- ifelse(hiv.dat4$BMI >= 10.8 & hiv.dat4$BMI <= 70.1, hiv.dat4$BMI, NA) 
 
 hiv.dat4$white.nh <- ifelse(hiv.dat4$RACE==1, 1, 0) 
 
