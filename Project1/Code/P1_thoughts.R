@@ -1,8 +1,5 @@
 This document contains comments, class discussions, questions, response to questions, and my thoughts and analysis plans for Project 1
-
-Collation of Project 1 Class Discussions (on 02/09/2026, )
-
-Read, aggregate, and incorporate comments from Project 1 Analysis Plan and Project 0 grading into this analysis/report
+It is a collation of Project 1 Class Discussions (on 02/09/2026, 02/16, and 02/18), my thoughts and analysis plans
 
 Outcomes: 
   viral load (VLOAD) [Untreated:300 to 500; the million VLOAD is plausible (usually high)]
@@ -18,14 +15,14 @@ Per instructor:
     Year 0 (use), Year 1 (not use), focus on year 2, not above year 2 
     Baseline drug use only (year=0)
     This is an observational, not randomized, study, so we care about baseline values.
-    Clinically meaningful effect (2-sided) ==> VLOAD: +/- log10 0.5 change, CD4: +/- 50 cells/ml, QoL: +/- 2pts
+    Clinically meaningful effect (2-sided) ==> VLOAD: +/- 0.5log10 change, CD4: +/- 50 cells/ml, QoL: +/- 2pts
     Use N with data for all outcomes ~ 476
     
 Research question: 
     Response to HAART between baseline and year 2? Especially for VLOAD and LEU3N (Instructor said this is not of much interest)
-  Key:  Difference in treatment outcomes at Year-2 between baseline hard drug users vs non-users? 
+    Key: Difference in treatment outcomes at Year-2 between baseline hard drug users vs non-users? 
         If there is difference by hard drug status (in any of the 4 outcomes), is this difference explained by adherence status?
-  2 Research questions
+    2 Research questions
 
 Question to investigator/instructor (these were clarified during 02/13 office hours):
     Clarify year=0 and year=2 are only of interest; yes focus on year=0 and year=2 only
@@ -39,22 +36,33 @@ Question to investigator/instructor (these were clarified during 02/13 office ho
         
         
 Next questions to ask investigators:
-    Can codebook be on GitHub or add to .gititnore?
-    It makes sense to filter our outliers and/or unreasonable values before creating Table 1 (I dont think so), including log10 and other tranformations?
-    Range of BMI values shown in the codebook useful?
-    Recode adherence to 95% or higher adherence vs <95%?
-
+Question for investigator:
+  1)Are the range of values indicated in the codebook, specifically 0 to 9999 for CD4+ cells (LEU3N), 0 to 9.9e+9 for viral load (VLOAD), 10.8 to 70.1 for BMI, -1.82 to 77.3 for AGG_MENT, 
+    6.34 to 75.54 for AGG_PHYS the range of plausible values we should work with and exclude values outside this range? If not, what is the range of true values for these variables that we should use?
+  2)Should I recode adherence variable (ADH) to >=95% vs <95% or this decision is left to the me (the analyst)
+  3)Is it correct that we should not perform model selection on the set of covariates provided by the investigator (age, BMI, smoking status, education, and race), i.e., all these covariates should be included in the model regardless of 'statistical significance'?
+  
 Comments from class notes:
-No model selection, adjust for specified variables
-Use baseline BMI
-Recode Race as White-NH vs Other
-Recode Education as 4 years of college or higher vs Other
-Use the baseline version of all covariates
+  Recode Race as White-NH vs Other
+  Recode Education as 4 years of college or higher vs Other
+  Use the baseline version of all covariates
+  
+    Can codebook be on GitHub or add to .gititnore? [did not ask, irrelevant]
+    It makes sense to filter our outliers and/or unreasonable values before creating Table 1 (I dont think so), including log10 and other tranformations?
 
+02/23
+Report frequentist, focus on interpreting Bayesian
+>=95% vs <95% for adherence makes sense
+Current vs non-current smoker
+Regardless if you think adherence is a confounder or mediator, it can explain the differnece between groups or the lack of difference between the groups
+For mediation analysis: Assessment of the relationship between HDuse and Adh can be descriptive. Then fit HDUse + Cov model, and then HDU + ADH + Cov
 
+HDU --> Adh --> CD4+
+HDU --> CD4+
 
+HDU and ADH should make it into your table of coefficients, COV may not
+  
 
-    
 Analysis ideas per me:
     Model structure: 2-yr response = baseline_response + hard_drugs + covariates
     Model structure: 2-yr response = baseline_response + hard_drugs + hard_drugs:adherence + covariates
@@ -70,9 +78,10 @@ Todos per me:
   Comment in the report on how dropout may impact result, including dropout from baseline to year=2, and missing observations
   Differentiate between dropout and missingness
   Weighted analysis of propensity to use hard drugs (ask the professor).
-  
-  
-  
+  Read, aggregate, and incorporate comments from Project 1 Analysis Plan and Project 0 grading into this analysis/report
+  See diary with possible layout for key reuslts, and the possible need for XMY mediation analysis
+  Include the chains, draws, number of discards  
+  Add p-value, for all. Explain this and note small sample sizes. Reproduce yourself.
   
   
   #Extract the label of all variables and paste here.
