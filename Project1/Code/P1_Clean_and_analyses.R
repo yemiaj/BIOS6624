@@ -160,25 +160,45 @@ hiv.dat4 <- hiv.dat3[!is.na(hiv.dat3$years.2) & hiv.dat3$years.2==2,
 names(hiv.dat4)[-1] <- c("phy.qol", "phy.qol.y2", "ment.qol", "ment.qol.y2", "cd4.count", "cd4.count.y2", "lg10.vload", "lg10.vload.y2", 
                          "drug.use", "adhere.y2", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")
 
-hiv.dat4$adh.y2 <- ifelse(hiv.dat4$adhere.y2 <=2, 1, 0) #>=95% vs <95% 
-
-
-# ADH: Adherence to meds taken since last visit | 1=100%, 2=95-99%, 3=75-94%, 4= <75%, ''=Missing
-
-
+hiv.dat4$hd.use <- ifelse(hiv.dat4$drug.use == "Yes", 1, 0)
+hiv.dat4$adh.y2 <- ifelse(hiv.dat4$adhere.y2 %in% c("95 - 99%", "100%"), 1, 0)
 #The limit of plausible values for BMI used below was obtained from the codebook (it is appropriate here and excludes -1(n=7), 514(n=1), and 999 (n=5))
 hiv.dat4$bmi <- ifelse(hiv.dat4$BMI >= 10.8 & hiv.dat4$BMI <= 70.1, hiv.dat4$BMI, NA) 
+hiv.dat4$white.nh <- ifelse(hiv.dat4$RACE == "White, non-Hispanic", 1, 0)
+hiv.dat4$college <- ifelse(hiv.dat4$EDUCBAS %in% c("Four years college", "Some graduate work", "Post-graduate degree"), 1, 0) 
+hiv.dat4$curnt.smkr <- ifelse(hiv.dat4$SMOKE == "Current smoker", 1, 0) 
 
-hiv.dat4$white.nh <- ifelse(hiv.dat4$RACE==1, 1, 0) 
+#Select needed variables, and newly created binary ones
+hiv.dat5 <- hiv.dat4[, c("newid", "phy.qol", "phy.qol.y2", "ment.qol", "ment.qol.y2", "cd4.count", "cd4.count.y2", "lg10.vload", 
+                         "lg10.vload.y2", "bmi", "age", "hd.use", "adh.y2", "white.nh", "college", "curnt.smkr")]
 
-hiv.dat4$college <- ifelse(hiv.dat4$EDUCBAS >= 5, 1, 0) 
+#Create a variable that sums the rows of NAs as a new variable
+hiv.dat5$sum.miss <- rowSums(is.na(hiv.dat5))
 
-hiv.dat4$frmr.smkr <- ifelse(hiv.dat4$SMOKE == 2, 1, 0) 
-hiv.dat4$curnt.smkr <- ifelse(hiv.dat4$SMOKE == 3, 1, 0) 
+#See the observations with NAs 
+hiv.dat5[hiv.dat5$sum.miss>0, ]
 
-hiv.dat4$adh2 <- ifelse(hiv.dat4$adhere.y2 == 2, 1, 0) 
-hiv.dat4$adh3 <- ifelse(hiv.dat4$adhere.y2 == 3, 1, 0) 
-hiv.dat4$adh4 <- ifelse(hiv.dat4$adhere.y2 == 4, 1, 0) 
+#See them in the more raw/earlier data version
+hiv.dat4[hiv.dat4$newid %in% hiv.dat5[hiv.dat5$sum.miss>0, ]$newid, ]
+
+#Complete case and final data for analysis 
+hiv.dat6 <- hiv.dat5[complete.cases(hiv.dat5), ]
+hiv.dat6 <- hiv.dat6[, -match("sum.miss", names(hiv.dat6))] #Remove unneeded sum.miss variable
+
+
+write.csv(hiv.dat6, "./Project1/DataProcessed/hiv_6624_clean.csv", row.names = FALSE)
+
+
+#Plans
+#Recreate Table 1 for timepoint 2 and see how it compares
+Fit crude ==> response ~ hd.use + BL
+Adjusted  ==> response ~ hd.use + BL + covars
+Mediation model A & B
+
+
+
+
+
 
 
 #Preliminary models 
@@ -197,9 +217,6 @@ summary(fit2 <- lm(cd4.count.y2 ~ cd4.count + drug.use + adh2 + adh3 + adh4, hiv
 summary(fit0 <- lm(lg10.vload.y2 ~ drug.use, hiv.dat4))
 summary(fit1 <- lm(lg10.vload.y2 ~ lg10.vload + drug.use, hiv.dat4))
 summary(fit2 <- lm(lg10.vload.y2 ~ lg10.vload + drug.use + adh2 + adh3 + adh4, hiv.dat4))
-
-#Complete case data
-
 
 summary(fit3 <- lm(phy.qol.y2 ~ phy.qol + drug.use + age + bmi + white.nh + college + frmr.smkr + curnt.smkr + adh2 + adh3 + adh4, hiv.dat4))
 
