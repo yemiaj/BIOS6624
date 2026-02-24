@@ -10,7 +10,7 @@ File | Description
 ---|-------------------------------------------------------------------------
 Background | Contains literature review articles and other materials shared by investigator
 Code | Contains code used to import, clean, and organize dataset for primary analysis. It may also include notes on analysis ideas/thoughts
-DataProcessed | This contains data that has been cleaned using one of the code programs found in /Code
+DataProcessed | This contains data that has been cleaned using one of the code programs found in /Code directory
 DataRaw | This contains the raw data provided by investigator for analysis
 Reports | This is where study reports (.pdf, .docx, .pptx) files lives and the markdown file used to generate the report
 
@@ -23,3 +23,7 @@ Included questions and ideas after reading Project 0 Description.
 # 02/04/2026
 
 Project 0 is due today. Substantial work has been done.
+
+# 02/23/2026
+
+Project 1 is due on March 2nd. Work is ongoing.
