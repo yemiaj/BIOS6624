@@ -1,0 +1,140 @@
+---
+title: 'Project 1: Secondary Analysis of the Multicenter AIDS Cohort Study'
+author: "Opeyemi Jegede"
+date: "2026-02-25"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+#Packages used for analysis
+library(gtsummary)
+
+#Import the raw data (needed for the narrative in the introduction section)
+raw.data <- read.csv('../DataRaw/hiv_6624_final.csv') 
+
+#Import the cleaned, final analysis dataset
+f.data <- read.csv('../DataProcessed/hiv_6624_clean.csv') 
+
+```
+
+## Introduction
+
+Multicenter AIDS Cohort Study (MACS) is an ongoing prospective cohort study of the natural and treated histories of HIV-1 infection in homosexual and bisexual men in 4 major cities in the United States. MACS data was provided for secondary analysis, it comprised `r nrow(raw.data)` observations representing up to `r max(raw.data$years)` years of longitudinal laboratory and quality of life measures on `r sum(table(unique(raw.data$newid)))` unique men, who were infected with HIV, after beginning highly active antiretroviral treatment (HAART) which is the standard treatment for HIV infected patients. Analysis will be focused on the 2 timepoints of interest, baseline (year 0) and year 2 follow-up.
+
+There are 4 measures of treatment response that are of interest in this analysis, they include standardized viral load (in copies/ml), CD4+ T-cell count (in cells), aggregate physical and mental quality of life score (both ranging from 0 to 100). For each of these treatment responses, it is of interest to test the following hypotheses, whether: (a) the treatment response at 2 years after HAART differs by hard drug use status at baseline, and (b) this difference is explained by adherence (to medications) status.
+
+## (preliminary) Methods
+# Change tense
+
+Mean and standard deviation estimates will be reported for continuous variables, and frequency and proportion for categorical variables. These estimates will be tabulated and stratified by hard drug use, at both timepoints of interest. Boxplots and bar chart, stratified by baseline hard drug use status, will be used for visual assessment (skewness, outliers, etc.) of the distribution of continuous and categorical variables respectively.
+
+To test the hypotheses stated above, a Bayesian multivariable linear regression model will be fitted for each follow-up (year 2) treatment response measure separately. To control for between-subject differences at baseline, baseline (year 0) values for each response variable will be adjusted for in the model. The two key predictor variables are hard drug use at baseline and year 2 treatment adherence, potential covariates for the multivariable model include age, body-mass index (BMI), smoking status, education, race/ethnicity. A normal likelihood will be used for each response, and appropriate non-informative priors will be specified for covariates and the model residual variance. This analysis will be repeated in a frequentist framework using a separate multivariable linear regression model for each treatment response variable. Inference for both hypothesis tests will be based on the posterior distribution and t-statistics for these key variables in the Bayesian and Frequentist framework respectively. A suitable transformation will be applied if there is a substantial skew in any of the variables. Model comparison in the Bayesian and frequentist framework will be based on the Widely Applicable Information Criterion (WAIC) statistics and (overall & partial) F-tests (or likelihood ratio test) respectively, and autocorrelation plots and residual analysis will be used for model diagnostics in each respective framework. 
+
+R Statistical Software Version 4.5.2 will be used for all analysis and Bayesian analysis will be implemented using Stan via the `cmdstanr` R package.
+
+
+Definition of confounder and mediation, and the basis for assessing 
+Inclusion of clinically meaningful differences
+
+## Results
+
+```{r echo=FALSE}
+#Duplicate the final data, add factor labels to this version
+f.data2 <- f.data
+
+#Assign and label levels for categorical variables
+f.data2$hd.use <- factor(f.data2$hd.use, levels = c(0, 1), labels = c("No", "Yes"))
+f.data2$adh.y2 <- factor(f.data2$adh.y2, levels = c(0, 1), labels = c("<95%", ">=95%"))
+f.data2$white.nh <- factor(f.data2$white.nh, levels = c(0, 1), labels = c("Other", "White, non-Hispanic"))
+f.data2$college <- factor(f.data2$college, levels = c(0, 1), labels = c("Below four years college", "Four years of college or higher"))
+f.data2$curnt.smkr <- factor(f.data2$curnt.smkr, levels = c(0, 1), labels = c("Former/never smoker", "Current smoker"))
+
+#Create Table 1 for the main report
+main.tab1 <- f.data2 |>
+  tbl_summary(by = hd.use,
+              include = c("age", "bmi", "white.nh", "college", "curnt.smkr", "phy.qol", "ment.qol", "cd4.count", "lg10.vload",
+                          "phy.qol.y2", "ment.qol.y2", "cd4.count.y2", "lg10.vload.y2", "adh.y2"),
+              
+              label = list(age ~ "Age at visit (years)", bmi ~ "Body Mass Index (kg/m^2)", white.nh ~ "Race/ethnicity", college ~ "Highest level of education", 
+                           curnt.smkr ~ "Smoking status", 
+                           phy.qol ~ "Baseline: Aggregate physical QoL score", ment.qol ~ "Baseline: Aggregate mental QoL score",
+                           cd4.count ~ "Baseline: CD4+ T cell count", lg10.vload ~ "Baseline: Log10 viral Load (HIV copies per mL of blood)",
+                           phy.qol.y2 ~ "Year 2: Aggregate physical QoL score", ment.qol.y2 ~ "Year 2: Aggregate mental QoL score", 
+                           cd4.count.y2 ~ "Year 2: CD4+ T cell count", lg10.vload.y2 ~ "Year 2: Log10 viral Load (HIV copies per mL of blood)", 
+                           adh.y2 ~ "Year 2: Adherence to meds taken since last visit"),
+              
+              type = list(c("age", "bmi", "phy.qol", "ment.qol", "cd4.count", "lg10.vload", "phy.qol.y2", "ment.qol.y2", "cd4.count.y2", "lg10.vload.y2") ~ "continuous",
+                          c("white.nh", "college", "curnt.smkr", "adh.y2") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd})", 
+                               all_categorical() ~ "{n} ({p}%)"),
+              
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
+  add_p() |>
+  add_overall(last = TRUE)
+main.tab1
+
+
+#Create Figure 1 for the main report
+#Seperate out outcomes for hard drug user (HDu) at baseline (labelled grp=1),  HDu at year 2 (labelled grp=2)
+    #non-HDu at baseline (labelled grp=3) and non-HDu at year 2 (labelled grp=4)
+#The separation is accomplished by function below, this is likely achievable with reshape, I may figure it out later but for now use this
+#I compared distribution and inference with Table 1 to make sure no errors
+xfrm.data.plt <- function(data, var) {
+  
+  dy1 <- data[data$hd.use == 1, var]
+  dy1 <- data.frame(cbind(vname=dy1, grp=rep(1, length(dy1))))
+
+  dy2 <- data[data$hd.use == 1, paste0(var,".y2")]
+  dy2 <- data.frame(cbind(vname=dy2, grp=rep(2, length(dy2))))
+  
+  dn1 <- data[data$hd.use == 0, var]
+  dn1 <- data.frame(cbind(vname=dn1, grp=rep(3, length(dn1))))
+
+  dn2 <- data[data$hd.use == 0, paste0(var,".y2")]
+  dn2 <- data.frame(cbind(vname=dn2, grp=rep(4, length(dn2))))
+  
+  dall <- rbind(dy1, dy2, dn1, dn2)
+  
+  return(dall)
+}
+
+lng.phy <- xfrm.data.plt(data=f.data, var="phy.qol")
+lng.met <- xfrm.data.plt(data=f.data, var="ment.qol")
+lng.cd4 <- xfrm.data.plt(data=f.data, var="cd4.count")
+lng.vld <- xfrm.data.plt(data=f.data, var="lg10.vload")
+
+par(mfrow=c(2,2))
+boxplot(lng.phy$vname ~ lng.phy$grp, col=c(rep("grey30",2), rep("grey80",2)))
+legend("bottomleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+
+boxplot(lng.met$vname ~ lng.met$grp, col=c(rep("grey30",2), rep("grey80",2)))
+legend("bottomleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+
+boxplot(lng.cd4$vname ~ lng.cd4$grp, col=c(rep("grey30",2), rep("grey80",2)))
+legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+
+boxplot(lng.vld$vname ~ lng.vld$grp, col=c(rep("grey30",2), rep("grey80",2)))
+legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+
+```
+
+## Discussion
+
+
+
+
+## Supplementary Results
+
+```{r}
+
+#Copy code for Supplementary 1a and b here
+#Note that this code was copied from p1_clean_and_analyses
+
+
+
+```
