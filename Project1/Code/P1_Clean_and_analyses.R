@@ -188,8 +188,27 @@ hiv.dat6 <- hiv.dat6[, -match("sum.miss", names(hiv.dat6))] #Remove unneeded sum
 
 write.csv(hiv.dat6, "./Project1/DataProcessed/hiv_6624_clean.csv", row.names = FALSE)
 
+#Model template
+mod0 <- glm(phy.qol.y2 ~ hd.use, data = f.data,  family = gaussian(link = "identity"))
+mod1 <- glm(phy.qol.y2 ~ hd.use + phy.qol + bmi + age + white.nh + college + curnt.smkr, data = f.data, family = gaussian(link = "identity"))
+adj.mod <- glm(phy.qol.y2 ~ hd.use + phy.qol + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = f.data, family = gaussian(link = "identity"))
 
-#Plans
+
+
+
+
+#mediation models
+#anova, Extract R^2, -2log lik, nparameters, dist of residuals. normality test
+
+Confounder and mediation goes into supplementary
+Baseline as a precision variable
+Combine confounders with the precision variable and proceed as usual
+
+
+
+
+
+
 #Recreate Table 1 for timepoint 2 and see how it compares
 Fit crude ==> response ~ hd.use + BL
 Adjusted  ==> response ~ hd.use + BL + covars
