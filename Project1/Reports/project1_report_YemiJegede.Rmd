@@ -121,6 +121,7 @@ legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "gre
 boxplot(lng.vld$vname ~ lng.vld$grp, col=c(rep("grey30",2), rep("grey80",2)))
 legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
 
+
 ```
 
 ## Discussion
@@ -130,10 +131,110 @@ legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "gre
 
 ## Supplementary Results
 
-```{r}
+```{r, echo=FALSE}
 
-#Copy code for Supplementary 1a and b here
-#Note that this code was copied from p1_clean_and_analyses
+#Create log10 transformed VLOAD, and also keep the original version.
+raw.data$lg.VLOAD <- log10(raw.data$VLOAD)
+
+# Select variables of interest to this project, and also limit the data to years of interest, i.e. year=0 and year=2
+raw.data1 <- raw.data[raw.data$years %in% c(0,2), c("newid", "years", "AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD","lg.VLOAD", 
+                                                  "hard_drugs","ADH", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
+
+#Assign and label levels for categorical variables
+raw.data1$hard_drugs <- factor(raw.data1$hard_drugs, levels = c(0, 1), labels = c("No", "Yes"))
+raw.data1$RACE <- factor(raw.data1$RACE, levels = c(1, 2, 3, 4, 7, 8), labels = c("White, non-Hispanic", "White, Hispanic", "Black, non-Hispanic",
+                                                                                "Black, Hispanic", "Other", "Other Hispanic"))
+raw.data1$EDUCBAS <- factor(raw.data1$EDUCBAS, levels = c(1, 2, 3, 4, 5, 6, 7), labels = c("8th grade or less", "9th to 11th grade", "12th grade",
+                                                                                       "1+ year college (but no degree)", "Four years college", 
+                                                                                       "Some graduate work", "Post-graduate degree"))
+raw.data1$SMOKE <- factor(raw.data1$SMOKE, levels = c(1, 2, 3), labels = c("Never smoked", "Former smoker", "Current smoker"))
+raw.data1$ADH <- factor(raw.data1$ADH, levels = c(1, 2, 3, 4), labels = c("100%", "95 - 99%", "75 - 94%", "<75%"))
+
+# Separate out year0 and year2
+raw.data1.y0 <- raw.data1[raw.data1$years==0, ]
+raw.data1.y2 <- raw.data1[raw.data1$years==2, ]
+
+#Rename the variables in the raw.data1.y2 dataframe and add a suffix of ".2" to the variable names to differentiate from the same variables found in hiv.dat.y0
+names(raw.data1.y2)[-1] <- paste0(names(raw.data1.y2), '.', 2)[-1]
+
+#Merge year0 and year2, and keep all rows of data, including those in year0 but not year2
+raw.data3 <- merge(raw.data1.y0, raw.data1.y2, by.x = 'newid', all.x = TRUE, all.y = TRUE)
+
+#Because 'years' is a variable without NAs in the earlier raw.data1 data frame, values of year.2 == NA can be used as indicator for lost to follow-up
+raw.data3$lost.fu <- ifelse(is.na(raw.data3$years.2), 1, 0) #1 == Yes, lost to follow-up
+raw.data3$lost.fu <- factor(raw.data3$lost.fu, levels = c(0, 1), labels = c("No", "Yes"))
+
+#Create Supplementary Table 1a
+#Credits, excellent resource, and developer of gtsummary: https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html
+tab1 <- raw.data3[raw.data3$years==0, ] |> #Select for year 0 in the merged year0 and year2 data
+  
+  tbl_summary(by = hard_drugs,
+              
+              include = c("AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD", "lg.VLOAD", "BMI", "age", "RACE", "EDUCBAS", "lost.fu", "SMOKE"),
+              
+              label = list(AGG_MENT ~ "Aggregate Mental Quality of Life Score", AGG_PHYS ~ "Aggregate Physical Quality of Life Score", LEU3N ~ "CD4+ T cell count",
+                           VLOAD ~ "Standardized Viral Load (HIV copies per mL of blood)", lg.VLOAD ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)", 
+                           BMI ~ "Body Mass Index (kg/m^2)", age ~ "Age at visit (years)", RACE ~ "Race, Ethinicity Category", EDUCBAS ~ "Highest Level of Education", 
+                           lost.fu ~ "Lost to follow-up (between Year 0 and 2)", SMOKE ~ "Smoking Status"),
+              
+              type = list(c("AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD", "lg.VLOAD", "BMI", "age") ~ "continuous",
+                         c("RACE", "EDUCBAS", "lost.fu", "SMOKE") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd})", 
+                               all_categorical() ~ "{n} ({p}%)"),
+
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              #missing="ifany",
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
+  add_p(test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |> #Argument within add_p() is needed for exact test to run without an error message
+  add_overall(last=TRUE)
+#tab1
+
+#Create Supplementary Table 1b
+tab2 <- raw.data3[!is.na(raw.data3$years.2) & raw.data3$years.2==2, ] |> #Select for year 2 in the merged year0 and year2 data
+  
+  tbl_summary(by = hard_drugs,
+              
+              include = c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "VLOAD.2", "lg.VLOAD.2", "BMI.2", "age.2", "RACE.2", "EDUCBAS.2", "ADH.2", "SMOKE.2"),
+              
+              label = list(AGG_MENT.2 ~ "Aggregate Mental Quality of Life Score", AGG_PHYS.2 ~ "Aggregate Physical Quality of Life Score", LEU3N.2 ~ "CD4+ T cell count", 
+                           VLOAD.2 ~ "Standardized Viral Load (HIV copies per mL of blood)", lg.VLOAD.2 ~ "Log10 Standardized Viral Load (HIV copies per mL of blood)",
+                           BMI.2 ~ "Body Mass Index (kg/m^2)", age.2 ~ "Age at visit (years)", RACE.2 ~ "Race, Ethinicity Category", EDUCBAS.2 ~ "Highest Level of Education", 
+                           ADH.2 ~ "Adherence to meds taken since last visit", SMOKE.2 ~ "Smoking Status"),
+              
+              type = list(c("AGG_MENT.2", "AGG_PHYS.2", "LEU3N.2", "VLOAD.2", "lg.VLOAD.2", "BMI.2", "age.2") ~ "continuous",
+                          c("RACE.2", "EDUCBAS.2", "ADH.2", "SMOKE.2") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd})", 
+                               all_categorical() ~ "{n} ({p}%)"),
+              
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              #missing="ifany",
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
+  add_p(test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |>
+  add_overall(last=TRUE)
+#tab2
+
+#Combine Supplementary Table 1a and 1b
+#For both gtsummary objects to merge properly into a single table, rename the variable name in tab2 so all the variables have the same name
+
+#Use a duplicate of tab2 for this task
+tab2b <- tab2
+tab2b$table_body$variable <- substr(tab2b$table_body$variable, 1, nchar(tab2b$table_body$variable) - 2)
+
+sp.tab1.full <- tbl_merge(tbls = list(tab1, tab2b), tab_spanner = c("**Baseline**", "**Follow-up (Year 2)**"))
+sp.tab1.full
+
+#Note that NA (missing) is split for smoking status and pasted into lost to FU
+#Make the ltfu variable work for year=2 too
+
+#Add headers and footnote as appropriate
+#Add difference in percentages/means (not necessary)
+
 
 
 
