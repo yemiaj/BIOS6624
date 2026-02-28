@@ -8,7 +8,19 @@ output: word_document
 ```{r setup, include=FALSE}
 
 #Packages used for analysis
-library(gtsummary)
+library(gtsummary) #Needed for creating publication-ready tables
+library(psych) #Needed for correlation matrix plot
+library(car) #Needed to calculated variance inflation factor (VIF) from a multivariable linear model
+
+library(cmdstanr)   #Needed to run STAN in R
+library(bayesplot)  # diagnostic plots of the MCMC chains
+library(posterior)  # for summarizing posterior draws
+library(bayestestR) # for calculating higest density posterior intervals
+library(mcmcse)     # for calculating MCMCSE's
+library(loo)        # for getting model fit statistics (WAIC and LOO-IC)
+library(dplyr)      #Data manipulation tricks
+library(tibble)     #For fancy data frames
+
 
 #Import the raw data (needed for the narrative in the introduction section)
 raw.data <- read.csv('../DataRaw/hiv_6624_final.csv') 
@@ -38,8 +50,12 @@ Definition of confounder and mediation, and the basis for assessing
 Inclusion of clinically meaningful differences
 
 ## Results
+Significant in follow-up by HD use status.
+Difference in characteristics at baseline and at follow-up year 2, and how that compares to the final set (n=463)
 
-```{r echo=FALSE}
+
+
+```{r Table 1 and Figure 1, echo=FALSE}
 #Duplicate the final data, add factor labels to this version
 f.data2 <- f.data
 
@@ -74,8 +90,10 @@ main.tab1 <- f.data2 |>
                             all_categorical() ~ 0),
               missing_text = "NA (missing)",
               missing_stat = "{N_miss} ({p_miss}%)") |>
-  add_p() |>
-  add_overall(last = TRUE)
+  add_p(pvalue_fun = label_style_pvalue(digits = 3)) |>
+  add_overall(last = TRUE) |>
+  modify_header(label ~ "**Subject Characteristics**") |>
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Hard Drug use at Baseline?**") 
 main.tab1
 
 
@@ -122,7 +140,23 @@ boxplot(lng.vld$vname ~ lng.vld$grp, col=c(rep("grey30",2), rep("grey80",2)))
 legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
 
 
+#Matrix of correlation matrix and plot?
+#Probably into the supplementary report
+
+
+
 ```
+
+
+```{r Frequentist Models, echo=FALSE}
+phy.qol.mod <- mod.summary(data = f.data, y=c("phy.qol", "phy.qol.y2"))
+ment.qol.mod <- mod.summary(data = f.data, y=c("ment.qol", "ment.qol.y2"))
+cd4.mod <- mod.summary(data = f.data, y=c("cd4.count", "cd4.count.y2"))
+vload.mod <- mod.summary(data = f.data, y=c("lg10.vload", "lg10.vload.y2"))
+
+```
+
+
 
 ## Discussion
 
@@ -131,7 +165,7 @@ legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "gre
 
 ## Supplementary Results
 
-```{r, echo=FALSE}
+```{r Supplementary Table 1 + 2 & Figure 1, echo=FALSE}
 
 #Create log10 transformed VLOAD, and also keep the original version.
 raw.data$lg.VLOAD <- log10(raw.data$VLOAD)
@@ -188,8 +222,10 @@ tab1 <- raw.data3[raw.data3$years==0, ] |> #Select for year 0 in the merged year
               #missing="ifany",
               missing_text = "NA (missing)",
               missing_stat = "{N_miss} ({p_miss}%)") |>
-  add_p(test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |> #Argument within add_p() is needed for exact test to run without an error message
-  add_overall(last=TRUE)
+  add_p(pvalue_fun = label_style_pvalue(digits = 3), test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |> #Argument within add_p() is needed for exact test to run without an error message
+  add_overall(last=TRUE) |>
+  modify_header(label ~ "**Subject Characteristics**") |>
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Hard Drug use at Baseline?**")
 #tab1
 
 #Create Supplementary Table 1b
@@ -215,8 +251,10 @@ tab2 <- raw.data3[!is.na(raw.data3$years.2) & raw.data3$years.2==2, ] |> #Select
               #missing="ifany",
               missing_text = "NA (missing)",
               missing_stat = "{N_miss} ({p_miss}%)") |>
-  add_p(test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |>
-  add_overall(last=TRUE)
+  add_p(pvalue_fun = label_style_pvalue(digits = 3), test.args = all_tests("fisher.test") ~ list(simulate.p.value = TRUE)) |>
+  add_overall(last=TRUE) |>
+  modify_header(label ~ "**Subject Characteristics**") |>
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Hard Drug use at Baseline?**")
 #tab2
 
 #Combine Supplementary Table 1a and 1b
@@ -228,14 +266,59 @@ tab2b$table_body$variable <- substr(tab2b$table_body$variable, 1, nchar(tab2b$ta
 
 sp.tab1.full <- tbl_merge(tbls = list(tab1, tab2b), tab_spanner = c("**Baseline**", "**Follow-up (Year 2)**"))
 sp.tab1.full
-
-#Note that NA (missing) is split for smoking status and pasted into lost to FU
-#Make the ltfu variable work for year=2 too
-
-#Add headers and footnote as appropriate
-#Add difference in percentages/means (not necessary)
+#Note that NA (missing) for smoking status is split and pasted under Adherence
+#This was corrected in Word in the final report. 
+#An alternative solution would be to code NA as a valid category for Smoking variable, this is not good practice
 
 
+##Create Supplementary Table 2
+#Create Table 1 for the main report
+sp.tab2 <- f.data2 |>
+  tbl_summary(by = adh.y2,
+              include = c("age", "bmi", "white.nh", "college", "curnt.smkr", "phy.qol", "ment.qol", "cd4.count", "lg10.vload",
+                          "phy.qol.y2", "ment.qol.y2", "cd4.count.y2", "lg10.vload.y2", "hd.use"),
+              
+              label = list(age ~ "Age at visit (years)", bmi ~ "Body Mass Index (kg/m^2)", white.nh ~ "Race/ethnicity", college ~ "Highest level of education", 
+                           curnt.smkr ~ "Smoking status", 
+                           phy.qol ~ "Baseline: Aggregate physical QoL score", ment.qol ~ "Baseline: Aggregate mental QoL score",
+                           cd4.count ~ "Baseline: CD4+ T cell count", lg10.vload ~ "Baseline: Log10 viral Load (HIV copies per mL of blood)",
+                           phy.qol.y2 ~ "Year 2: Aggregate physical QoL score", ment.qol.y2 ~ "Year 2: Aggregate mental QoL score", 
+                           cd4.count.y2 ~ "Year 2: CD4+ T cell count", lg10.vload.y2 ~ "Year 2: Log10 viral Load (HIV copies per mL of blood)", 
+                           hd.use ~ "Hard drug use at baseline"),
+              
+              type = list(c("age", "bmi", "phy.qol", "ment.qol", "cd4.count", "lg10.vload", "phy.qol.y2", "ment.qol.y2", "cd4.count.y2", "lg10.vload.y2") ~ "continuous",
+                          c("white.nh", "college", "curnt.smkr", "hd.use") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd})", 
+                               all_categorical() ~ "{n} ({p}%)"),
+              
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
+  add_p(pvalue_fun = label_style_pvalue(digits = 3)) |>
+  add_overall(last = TRUE) |>
+  modify_header(label ~ "**Subject Characteristics**") |>
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Adherence to meds taken since last visit**") 
+sp.tab2
 
+
+
+##Create Supplementary Figure 1
+# plot distributions and correlations for all the data
+psych::pairs.panels(f.data[, -1], gap = 0, pch = 21, lm = TRUE, ellipses=FALSE)
 
 ```
+
+
+```{r Patient Flow Chart, echo=FALSE}
+
+# N unique and N overall
+# N overall and unique in year 0 and 2
+# N lost to follow-up
+# N with missing data in complete case
+
+```
+
+
+
