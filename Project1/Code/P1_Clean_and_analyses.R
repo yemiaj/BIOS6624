@@ -223,6 +223,8 @@ mediation.analysis <- rbind(phy.med, ment.med, cd4.med, vload.med)
 rownames(mediation.analysis) <- c("Physical QoL", "Mental QoL", "CD4+ Counts", "Log10 Viral Load")
 mediation.analysis
 
+#VLOAD: +/- 0.5log10 change, CD4: +/- 50 cells/ml, QoL: +/- 2pts
+
 #mediation models
 #anova, Extract R^2, -2log lik, nparameters, dist of residuals. normality test
 #observed and predicted plots
@@ -233,12 +235,6 @@ Baseline as a precision variable
 Combine confounders with the precision variable and proceed as usual
 
 
-#Recreate Table 1 for timepoint 2 and see how it compares
-Fit crude ==> response ~ hd.use + BL
-Adjusted  ==> response ~ hd.use + BL + covars
-Mediation model A & B
-
-
 #Keep a dataframe containing the original variable so you can describe the exclusions
 # Work on NAs, 
 # Review outliers and plausible values for continuous variables (ask instructor)
@@ -246,8 +242,13 @@ Mediation model A & B
 # Apply transformations as appropriate
 
 
-# This Bayesian analysis code block was adapted from instructor's (Camille Moore, PhD) 
-# sample code provided on Canvas
+
+
+###########################################################################
+# CREDITS: This Bayesian analysis code block was adapted from instructor's 
+#   (Camille Moore, PhD) sample code provided on Canvas
+###########################################################################
+
 
 ####Bayesian Analysis
 ###########################################################################
@@ -365,9 +366,144 @@ data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd 
 bayes.ment.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
 
 
+#CD4 Count
+y <- hiv.dat6$cd4.count.y2
+Xuni <- model.matrix(~ hd.use, data = hiv.dat6) 
+Xcrd <- model.matrix(~ hd.use + cd4.count + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+Xadj <- model.matrix(~ hd.use + cd4.count + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- rep(0, Puni); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.cd4.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- rep(0, Pcrd); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.cd4.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- rep(0, Padj); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.cd4.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+#vload Count
+y <- hiv.dat6$lg10.vload.y2
+Xuni <- model.matrix(~ hd.use, data = hiv.dat6) 
+Xcrd <- model.matrix(~ hd.use + lg10.vload + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+Xadj <- model.matrix(~ hd.use + lg10.vload + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- c(1, rep(0, (Puni-1))); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.vload.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- c(1, rep(0, (Pcrd-1))); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.vload.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- c(1, rep(0, (Padj-1))); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.vload.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+#Function for table of Bayesian estimates
+bayes.key.ests <- function(fit){
+  draws <- fit$draws()
+  draws_mat <- as_draws_matrix(draws)
+  params <- colnames(draws_mat)
+  params <- params[!grepl("lp__|log_lik", params)]
+  ests <- data.frame(fit$summary(variables = params))
+  return(ests)
+}
+bayes.key.ests(bayes.phy.crd)
+bayes.key.ests(bayes.phy.adj)
+
+bayes.key.ests(bayes.ment.crd)
+bayes.key.ests(bayes.ment.adj)
+
+bayes.key.ests(bayes.cd4.crd)
+bayes.key.ests(bayes.cd4.adj)
+
+bayes.key.ests(bayes.vload.crd)
+bayes.key.ests(bayes.vload.adj)
 
 
 
+bayes.mediator <- function(fit1, fit2) {
+  mediator.posterior <- as.numeric(as_draws_matrix(fit1$draws())[, "beta[2]"]) - as.numeric(as_draws_matrix(fit2$draws())[, "beta[2]"])
+  mean <- mean(mediator.posterior);
+  sd <- sd(mediator.posterior)
+  quant <- quantile(mediator.posterior, probs=c(0.025, .975))
+  ll <- quant[1]
+  ul <- quant[2]
+  return(c(mean, sd, ll, ul))  
+}
+bayes.mediator(bayes.phy.crd, bayes.phy.adj)
+bayes.mediator(bayes.ment.crd, bayes.ment.adj)
+bayes.mediator(bayes.cd4.crd, bayes.cd4.adj)
+bayes.mediator(bayes.vload.crd, bayes.vload.adj)
+
+
+#Another function for probability for clinically meaningful difference
+#Another function for performance measures for clinically meaningful difference
+#Another function for plots for clinically meaningful difference
+
+
+
+#Extract details
+draws <- bayes.vload.adj$draws()
+draws_mat <- as_draws_matrix(draws)
+params <- colnames(draws_mat)
+params <- params[!grepl("lp__|log_lik", params)]
+data.frame(bayes.vload.adj$summary(variables = params)) #Is this the same as the lapply function?
+final_draws <- draws_mat[, params]
+
+loglik_mat <- as_draws_matrix(bayes.vload.adj$draws("log_lik"))  # iterations x N
+waic_res <- waic(loglik_mat)
+print(waic_res)
+waic_res$estimates[3,1]
+
+draws <- as_draws_array(bayes.vload.adj$draws())  # dimensions: iterations x chains x parameters
+draws_df <- as_draws_df(bayes.vload.adj$draws())  # tidy format for bayesplot / ggplot
+#params <- c("beta[1]", "beta[2]", "beta[3]", "sigma")
+
+#Print these for the final selected model for each endpoint
+mcmc_trace(draws, pars = params)
+mcmc_dens_overlay(draws, pars = params)
+mcmc_acf(draws, pars = params)
+bayes.vload.adj$cmdstan_diagnose()
+
+
+
+
+
+
+
+
+
+
+
+
+bayes.cd4.adj$summary(variables=c("beta[1]", "beta[2]","beta[3]", "beta[4]","beta[5]", "beta[6]","beta[7]", "beta[8]","beta[9]", "sigma"))
+bayes.vload.adj$summary(variables=c("beta[1]", "beta[2]","beta[3]", "beta[4]","beta[5]", "beta[6]","beta[7]", "beta[8]","beta[9]", "sigma"))
+
+colnames(as_draws_matrix(bayes.cd4.adj$draws()))
 
 
 
