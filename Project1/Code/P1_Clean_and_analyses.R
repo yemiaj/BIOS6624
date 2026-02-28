@@ -3,6 +3,8 @@
 #Codes related to the cleaning and preliminary analysis of Project 1: Multicenter AIDS Cohort Study
 
 ######################
+library(gtsummary) #Needed for creating publication-ready tables
+library(psych) #Needed for correlation matrix plot
 library(car) #Needed to calculated variance inflation factor (VIF) from a multivariable linear model
 
 library(cmdstanr)
@@ -307,6 +309,73 @@ mod <- cmdstan_model('./Project1/Code/linear_regression_half_normal.stan')
 # STEP 3: Prepare your data to pass to Stan
 ###########################################################################
 
+#Physical QoL
+y <- hiv.dat6$phy.qol.y2
+Xuni <- model.matrix(~ hd.use, data = hiv.dat6) 
+Xcrd <- model.matrix(~ hd.use + phy.qol + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+Xadj <- model.matrix(~ hd.use + phy.qol + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- rep(0, Puni); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.phy.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- rep(0, Pcrd); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.phy.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- rep(0, Padj); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.phy.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+#Mental QoL
+y <- hiv.dat6$ment.qol.y2
+Xuni <- model.matrix(~ hd.use, data = hiv.dat6) 
+Xcrd <- model.matrix(~ hd.use + ment.qol + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+Xadj <- model.matrix(~ hd.use + ment.qol + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = hiv.dat6) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- rep(0, Puni); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.ment.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- rep(0, Pcrd); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.ment.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- rep(0, Padj); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+# 5000 burn-in and 10K iterations
+bayes.ment.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Outcome data
 y <- hiv.dat6$phy.qol.y2
 
@@ -341,12 +410,12 @@ data_list <- list(
 # STEP 4: Fit Model
 ###########################################################################
 
-# 2000 burn-in and 10K iterations
+# 5000 burn-in and 10K iterations
 bayes.phy <- mod$sample(
   data = data_list,
   chains = 4,
-  iter_warmup = 2000,
-  iter_sampling = 10000,
+  iter_warmup = 5000,
+  iter_sampling = 20000,
   seed = 6624
 )
 
@@ -356,6 +425,49 @@ bayes.phy.draws_mat <- as_draws_matrix(bayes.phy.draws)
 bayes.phy.params <- colnames(bayes.phy.draws_mat)
 bayes.phy.params <- bayes.phy.params[!grepl("lp__|log_lik", bayes.phy.params)]
 
+mcmc_dens_overlay(as_draws_array(bayes.phy$draws()), pars = c("beta[1]", "beta[2]","beta[3]", "beta[4]", "beta[5]", "beta[6]","beta[7]", "beta[8]","beta[9]", "sigma"))
+mcmc_trace(as_draws_array(bayes.phy$draws()), pars = c("beta[1]", "beta[2]","beta[3]", "beta[4]", "beta[5]", "beta[6]","beta[7]", "beta[8]","beta[9]", "sigma"))
+mcmc_acf(as_draws_array(bayes.phy$draws()), pars = c("beta[1]", "beta[2]","beta[3]", "beta[4]", "beta[5]", "beta[6]","beta[7]", "beta[8]","beta[9]", "sigma"))
+bayes.phy$cmdstan_diagnose()
 
+#c("phy.qol","phy.qol.y2")
+bay.mods <- function(data, y){
+  y <- data[,y[2]]
+  
+  x1="hd.use"
+  x2="bmi + age + white.nh + college + curnt.smkr"
+  modif="adh.y2"
+  
+  #X.full <- model.matrix(as.formula(paste("~", x1, "+", y[1], "+", modif, "+", x2)) , data=data)
+  X.full <- model.matrix(~ y[1], data=data)
+  N <- nrow(X.full)
+  P <- ncol(X.full)
+  
+  m <- rep(0, P) # mvnorm mean  (mean in the prior on the regression coefficients)
+  s <- rep(1000,P) # SD in the prior on regression coefficients --> variance 1000^2
+  sigma_sd <- 1000
+  
+  # create data list to pass to STAN
+  data_list <- list(
+    N = N,
+    P = P,
+    X = X.full,
+    y = y,
+    prior_mean = m,
+    prior_sd = s,
+    sigma_prior_sd = sigma_sd
+  )
+  
+  bayes.fit <- mod$sample(
+    data = data_list,
+    chains = 4,
+    iter_warmup = 5000,
+    iter_sampling = 20000,
+    seed = 6624
+  )
+  
+  return(bayes.fit)
+}
 
+bay.mods(data=hiv.dat6, y=c("phy.qol","phy.qol.y2"))
 
