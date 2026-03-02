@@ -92,7 +92,7 @@ There is a 95% probability that hard drug users compared to non-users have a low
 
 In mediation analysis (Table 3), the indirect effect of hard drugs on treatment response via treatment adherence was not clinically meaningful based on the comparison of the difference in posterior mean between the crude and adjusted models. For this reason, the conclusion was that treatment adherence is not a meaningful mediator of the relationship between hard drug use and any of the treatment responses in this study. Estimates from both Bayesian and frequentist analysis frameworks are similar.
 
-The posterior probability of the indicated clinically meaningful effect for physical and mental QoL is 83.4% and 26.3% respectively (Table 4), while it is 99.98% for CD4+ T-cell count and 23.8% for log10 viral load. There is a comparatively lower probability of a clinically meaningful effect for mental QoL and log10 viral load agrees with the findings in Table 2 indicating that there is limited evidence that there is a clinically meaningful difference between hard drug users and non-users.
+The posterior probability of the indicated clinically meaningful effect for physical and mental QoL is 83.4% and 26.3% respectively (Table 4), while it is 99.98% for CD4+ T-cell count and 1.80% for log10 viral load. There is a comparatively lower probability of a clinically meaningful effect for mental QoL and log10 viral load agrees with the findings in Table 2 indicating that there is limited evidence that there is a clinically meaningful difference between hard drug users and non-users.
 
 The Supplementary Section includes additional relevant results, including frequentist model details, correlation plots, and Bayesian MCMC convergence and diagnostic plots.
 
@@ -662,7 +662,8 @@ pprobs <- function(fit, dif1, dif2) {
 phy.probs <- pprobs(bayes.phy.crd, 2, -2)
 met.probs <- pprobs(bayes.ment.crd, 2, -2)
 cd4.probs <- pprobs(bayes.cd4.crd, 50, -50)
-vlo.probs <- pprobs(bayes.vload.crd, log10(1.5), log10(0.5))
+#vlo.probs <- pprobs(bayes.vload.crd, log10(1.5), log10(0.5))
+vlo.probs <- pprobs(bayes.vload.crd, 0.5, -0.5)
 
 post.probs<-data.frame(mod = c("Physical QoL", "Mental QoL", "CD4+ T-cells", "Log10 Viral Load"),
                        prob.ests = c(phy.probs, met.probs, cd4.probs, vlo.probs))
