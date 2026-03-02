@@ -27,3 +27,7 @@ Project 0 is due today. Substantial work has been done.
 # 02/23/2026
 
 Project 1 is due on March 2nd. Work is ongoing.
+
+# 03/02/2026
+
+Project 1 report and slides was submitted today.
