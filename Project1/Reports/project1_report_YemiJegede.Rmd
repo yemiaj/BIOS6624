@@ -5,11 +5,12 @@ date: "2026-02-25"
 output: word_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, message=FALSE}
 
 #Packages used for analysis
 library(gtsummary) #Needed for creating publication-ready tables
 library(psych) #Needed for correlation matrix plot
+
 library(car) #Needed to calculated variance inflation factor (VIF) from a multivariable linear model
 
 library(cmdstanr)   #Needed to run STAN in R
@@ -21,39 +22,85 @@ library(loo)        # for getting model fit statistics (WAIC and LOO-IC)
 library(dplyr)      #Data manipulation tricks
 library(tibble)     #For fancy data frames
 
+library(knitr)      # For kable table
 
 #Import the raw data (needed for the narrative in the introduction section)
 raw.data <- read.csv('../DataRaw/hiv_6624_final.csv') 
 
 #Import the cleaned, final analysis dataset
 f.data <- read.csv('../DataProcessed/hiv_6624_clean.csv') 
-
 ```
 
 ## Introduction
 
 Multicenter AIDS Cohort Study (MACS) is an ongoing prospective cohort study of the natural and treated histories of HIV-1 infection in homosexual and bisexual men in 4 major cities in the United States. MACS data was provided for secondary analysis, it comprised `r nrow(raw.data)` observations representing up to `r max(raw.data$years)` years of longitudinal laboratory and quality of life measures on `r sum(table(unique(raw.data$newid)))` unique men, who were infected with HIV, after beginning highly active antiretroviral treatment (HAART) which is the standard treatment for HIV infected patients. Analysis will be focused on the 2 timepoints of interest, baseline (year 0) and year 2 follow-up.
 
-There are 4 measures of treatment response that are of interest in this analysis, they include standardized viral load (in copies/ml), CD4+ T-cell count (in cells), aggregate physical and mental quality of life score (both ranging from 0 to 100). For each of these treatment responses, it is of interest to test the following hypotheses, whether: (a) the treatment response at 2 years after HAART differs by hard drug use status at baseline, and (b) this difference is explained by adherence (to medications) status.
+There are 4 measures of treatment response that are of interest in this analysis, they include standardized viral load (in copies/ml), CD4+ T-cell count (in cells), aggregate physical and mental quality of life score (both ranging from 0 to 100). For each of these treatment responses, it is of interest to test the following hypotheses, whether: (a) the treatment response at 2 years after HAART differs by hard drug use status at baseline, and (b) this difference is explained by adherence (to medications taken since last visit) status at year 2.
 
-## (preliminary) Methods
-# Change tense
+## Methods
 
-Mean and standard deviation estimates will be reported for continuous variables, and frequency and proportion for categorical variables. These estimates will be tabulated and stratified by hard drug use, at both timepoints of interest. Boxplots and bar chart, stratified by baseline hard drug use status, will be used for visual assessment (skewness, outliers, etc.) of the distribution of continuous and categorical variables respectively.
+Mean and standard deviation estimates were reported for continuous variables, and frequency and proportion for categorical variables. These estimates were tabulated and stratified by baseline hard drug use, inference (i.e., p-value) from appropriate statistical tests (e.g. Wilcoxon rank sum, Fisher’s or Chi-Square test) in the frequentist framework were obtained and reported. The decision to provide inference for the comparison of these characteristics was because MACS was an observational, not a randomized study. Boxplots, stratified by baseline hard drug use status, were used for visual assessment of the distribution of continuous variables at timepoints of interest.
 
-To test the hypotheses stated above, a Bayesian multivariable linear regression model will be fitted for each follow-up (year 2) treatment response measure separately. To control for between-subject differences at baseline, baseline (year 0) values for each response variable will be adjusted for in the model. The two key predictor variables are hard drug use at baseline and year 2 treatment adherence, potential covariates for the multivariable model include age, body-mass index (BMI), smoking status, education, race/ethnicity. A normal likelihood will be used for each response, and appropriate non-informative priors will be specified for covariates and the model residual variance. This analysis will be repeated in a frequentist framework using a separate multivariable linear regression model for each treatment response variable. Inference for both hypothesis tests will be based on the posterior distribution and t-statistics for these key variables in the Bayesian and Frequentist framework respectively. A suitable transformation will be applied if there is a substantial skew in any of the variables. Model comparison in the Bayesian and frequentist framework will be based on the Widely Applicable Information Criterion (WAIC) statistics and (overall & partial) F-tests (or likelihood ratio test) respectively, and autocorrelation plots and residual analysis will be used for model diagnostics in each respective framework. 
+Study participants with both baseline and year 2 follow-up data were considered for inclusion as the final analysis dataset. Treatment adherence, measured on an ordinal scale, was categorized as a new binary variable due to small cell counts. Race/ethnicity combination, smoking status, and highest level of education at baseline, were all also individually categorized as new binary variables due to small cell counts. Implausible, negative, and unknown body mass index (BMI) variables were re-coded to missing. The final analysis dataset comprised observations without missing value for any of the treatment response (outcome) or demographic variables that are of interest in this analysis at baseline and follow-up (year 2).
 
-R Statistical Software Version 4.5.2 will be used for all analysis and Bayesian analysis will be implemented using Stan via the `cmdstanr` R package.
+Standardized viral load was positively skewed and a log10 transformation was applied to obtain a more bell-shaped distribution for analysis. Otherwise, none of the other three outcome variables were transformed. Investigator-provided covariates that were adjusted for, for face validity include age, BMI (kg/m^2), smoking status, highest level of education and race/ethnicity. The status of treatment adherence, as a mediator variable, was assessed for each of the 4 outcomes.
 
+A Bayesian linear regression model with a normal distribution likelihood was fitted for each of the 4 outcomes.  Non-informative priors were specified for each of the regression coefficients and the residual variance. The mean and variance of the priors for the coefficients and intercept term, for the QoL and CD4+ T-cell count outcome models, were drawn from a normal distribution with mean of 0 and variance of $100^2$, while for the standardized viral load model, a mean of 1 with the same variance was specified because of the $log_{10}$ transformation. For all 4 models, a half normal non-informative prior with mean of 0 and variance 1002 was specified. The model was fitted using Stan, implemented with the `cmdstanr` package in R Statistical Software v4.5.2. Stan simulates the posterior distribution of the model estimates with Hamiltonian Monte Carlo using the No U-Turn Sampler. Four (4) chains were run each with 5000 iterations of warm-up and 20000 iterations each, and with a seed value for reproducibility. Such high iterations for warm-up and keeping were drawn so as to improve converge characteristics. Autocorrelation plots, trace plots, posterior density of chains, and R-hat were used for model diagnostics and checking convergence. Model comparison was based on the Widely Applicable Information Criterion (WAIC) statistics (where a lower score is better). 
 
-Definition of confounder and mediation, and the basis for assessing 
-Inclusion of clinically meaningful differences
+Three different models were fitted for each (year 2) outcome variable, a univariable, crude, and adjusted model. The univariable model has hard drug use as the only predictor. The crude model includes all the pre-specified covariates plus the respective baseline outcome measure, the rationale (for including baseline measure) was to adjust for between-subject differences at baseline which also serve as a precision variable. The adjusted model adds the treatment adherence mediator variable to the crude model, the rationale for adding it was to see how much the coefficient for the key predictor, hard drug use, changed. To test the first hypothesis, for each treatment response, the posterior mean with 95% highest posterior density interval (HPDI) were reported and assessed whether it includes the null value of 0. For the second hypothesis, an informal mediation analysis for treatment adherence was performed. The posterior mean with 95% HPDI of the indirect effect of mediation was estimated from the difference in posterior draws between the crude and adjusted models for hard drug use at baseline variable. Details of the mediation analysis, hypothesis test criteria, as well as the final model presented for each outcome, are provided in the Supplementary Section below. In addition, the posterior probability of a clinically meaningful change between hard drug user and non-user at baseline was estimated and tabulated for each treatment response. Clinically meaningful change, provided by the investigator, were 0.5 for log10 standardized viral load, 50 cells/ml for CD4+ T-cells, and 2 points each for mental and physical QoL. All 4 outcomes were considered equally important and there was no ranking among them, also there was no adjustment for multiple comparisons with respect to either hypothesis for any of the outcomes.
+
+This analysis was repeated in a frequentist framework by fitting separate linear regression models for each outcome, however, findings from this frequentist analysis was not the primary focus on this report.
 
 ## Results
-Significant in follow-up by HD use status.
-Difference in characteristics at baseline and at follow-up year 2, and how that compares to the final set (n=463)
 
+```{r patientflow, echo=FALSE}
+#This is a rough code and it serves the purpose of describing patient exclusions 
 
+raw.data12 <- raw.data[raw.data$years %in% c(0,2), ] #limit to years0 and 2
+
+uniq.obs <- sum(table(unique(raw.data12[,"newid"])))
+N.bl <- as.numeric(table(duplicated(raw.data12[raw.data12$years==0,"newid"]))) #number of unique observations at baseline
+N.y2 <- as.numeric(table(duplicated(raw.data12[raw.data12$years==2,"newid"]))) #number of unique observations at year 2
+
+#select needed variables
+raw.data12 <- raw.data[raw.data$years %in% c(0,2), c("newid", "years", "AGG_MENT", "AGG_PHYS", "LEU3N", "VLOAD",
+                                                  "hard_drugs","ADH", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
+raw.data1 <- raw.data12[raw.data12$years==0,] #Baseline data
+raw.data2<- raw.data12[raw.data12$years==2,] #Year 2 data
+
+names(raw.data2)[-1] <- paste0(names(raw.data2), '.', 2)[-1] #rename the variales in year2
+
+#Merge year0 and year2, but keep only year 2
+raw.data3 <- merge(raw.data1, raw.data2, by.x = 'newid', all.y = TRUE)
+raw.data3 <- raw.data3[, c("newid", "AGG_PHYS", "AGG_PHYS.2", "AGG_MENT", "AGG_MENT.2", "LEU3N", "LEU3N.2", "VLOAD", "VLOAD.2",
+                          "hard_drugs", "ADH.2", "BMI", "RACE", "EDUCBAS", "age", "SMOKE")]
+
+#Bring in the final analysis dataset to see those who were included or excluded in the final analysis
+raw.data4 <- merge(raw.data3, f.data[,c("newid", "hd.use")], by="newid", all=TRUE)
+
+N.exc <- dim(raw.data4[is.na(raw.data4$hd.use),])[1]
+
+```
+
+The provided dataset included repeated observations across up to 8 years for `r uniq.obs` unique subjects at baseline. Only `r N.y2` (`r round((N.y2/N.bl)*100)`%) of these 715 subjects have data available in year 2. Supplementary Table 1 shows the distribution and comparison of treatment response and demographic variables at baseline and year 2 follow-up for the 715 and 506 subjects respectively, stratified by hard drug use status at baseline. Among patients that reported using hard drugs at baseline, 41% were lost to follow-up by year 2 compared to 28% among those who did not report using hard drugs (p=0.029). In total, 43 unique subjects were excluded from the final analysis dataset due to missing or implausible values for several demographic and/or outcome variables including BMI. The final analysis dataset comprised `r dim(raw.data4)[1]-N.exc` unique observations.
+
+Table 1 shows the distribution of subject demographic characteristics at baseline, and outcome variables at baseline and year 2 follow-up stratified by hard drug use status at baseline, including inference (p-value) for the comparison of these characteristics between hard drug users and non-users. Using a 5% significance level in a frequentist framework, there is significant difference in BMI, highest level of education, smoking status, physical QoL at baseline & year 2, and CD4+ T-cell count at year 2 between subjects that reported using hard drugs at baseline compared to those that did not. Figure 1 is a boxplot of the distribution of all treatment response measures stratified by time (baseline and year 2) and hard drug use status. The Bayesian MCMC diagnostic assessments showed convergence, good overlay of posterior draws chains, quick diminishing of autocorrelation, and a pattern of random noise in the trace plot.
+
+From Table 2, based on the crude model, the posterior mean (95% HPDI) of the difference in physical and mental QoL between hard drug users at baseline and non-users is -3.34 (-5.61, -1.06) and -0.28 (-3.18, 2.63) respectively. Compared to non-hard drug users, hard drug users have a lower CD4+ T-cell count with a posterior mean (95% HPDI) of -163.60 (-215.76, -111.58). Finally, the posterior mean of the difference in log10 viral load (copies/mL) between hard drug users and non-users is -0.06 (-0.39, 0.27). 
+
+There is a 95% probability that hard drug users compared to non-users have a lower aggregate physical QoL score and lower CD4+ T-cell count. Therefore, there is a high level of confidence e(probability) that hard drug use is associated with these responses. The HPDI for aggregate mental QoL score and log10 viral load includes the null value of 0. Therefore, there is a low level of confidence that these response variables are associated with hard drug use. The respective MCMC models converged (R-Hat = 1) and generally, the adjusted model was not better than the crude model, except for log10 viral load based on WAIC criteria (Table 2). 
+
+In mediation analysis (Table 3), the indirect effect of hard drugs on treatment response via treatment adherence was not clinically meaningful based on the comparison of the difference in posterior mean between the crude and adjusted models. For this reason, the conclusion was that treatment adherence is not a meaningful mediator of the relationship between hard drug use and any of the treatment responses in this study. Estimates from both Bayesian and frequentist analysis frameworks are similar.
+
+The posterior probability of the indicated clinically meaningful effect for physical and mental QoL is 83.4% and 26.3% respectively (Table 4), while it is 99.98% for CD4+ T-cell count and 23.8% for log10 viral load. There is a comparatively lower probability of a clinically meaningful effect for mental QoL and log10 viral load agrees with the findings in Table 2 indicating that there is limited evidence that there is a clinically meaningful difference between hard drug users and non-users.
+
+The Supplementary Section includes additional relevant results, including frequentist model details, correlation plots, and Bayesian MCMC convergence and diagnostic plots.
+
+## Conclusion
+
+With a high level of confidence, it can be concluded that aggregate physical QoL score and CD4+ T-cells differ by baseline hard drug use status, and hard drug users had significantly lower estimates compared to non-users. The posterior probability of a clinically meaningful effect was high (83.4% and 99.98% respectively). The same conclusion cannot be reached based on aggregate mental QoL and log10 viral load. The association between hard drug use and any of these treatment response variables is not mediated by treatment adherence based on the indicated criteria.
+
+A major study limitation is the subject dropout (lost to follow-up), 29% of subjects were lost between baseline and year 2, and a higher proportion of dropout happened among the hard drug users at baseline. Also, there is evidence of a slight difference in the characteristics of the subjects that remained in study compared to those that started the study. Missing data analysis, and perhaps causal inference methods including weighting (for differences in baseline characteristics) and censoring (to control for loss to follow-up) should be attempted in further studies to understand the impact of missingness on study conclusions.
 
 ```{r Table 1 and Figure 1, echo=FALSE}
 #Duplicate the final data, add factor labels to this version
@@ -100,8 +147,10 @@ main.tab1
 #Create Figure 1 for the main report
 #Seperate out outcomes for hard drug user (HDu) at baseline (labelled grp=1),  HDu at year 2 (labelled grp=2)
     #non-HDu at baseline (labelled grp=3) and non-HDu at year 2 (labelled grp=4)
-#The separation is accomplished by function below, this is likely achievable with reshape, I may figure it out later but for now use this
-#I compared distribution and inference with Table 1 to make sure no errors
+#The separation is accomplished by function below, this is likely achievable with reshape() function, 
+  #I may figure it out later but for now use this
+#I compared distribution and inference shown Table 1 to make sure no errors
+
 xfrm.data.plt <- function(data, var) {
   
   dy1 <- data[data$hd.use == 1, var]
@@ -127,38 +176,531 @@ lng.cd4 <- xfrm.data.plt(data=f.data, var="cd4.count")
 lng.vld <- xfrm.data.plt(data=f.data, var="lg10.vload")
 
 par(mfrow=c(2,2))
-boxplot(lng.phy$vname ~ lng.phy$grp, col=c(rep("grey30",2), rep("grey80",2)))
-legend("bottomleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+boxplot(lng.phy$vname ~ lng.phy$grp, col=c("grey30", "grey70", "burlywood4", "burlywood2"), ylim=c(0,100),
+        ylab = "Physical Qol Score", xlab = "", cex.lab=1.5, xaxt="n")#, names = c("Hard Drug User", "Hard Drug User", "Non-Hard Drug User", "Non-Hard Drug User"))
+legend("topleft", c("Hard drug use at Baseline", 
+                       "Hard drug use at Year 2",
+                       "No Hard drug use at Baseline",
+                       "No Hard drug use at Year 2"), bty="n", pch=15, col=c("grey30", "grey70", "burlywood4", "burlywood2"), pt.cex=2, cex=1.5, ncol=2)
+legend("bottomleft", "Physical Qol Score", bty="n", text.font = 2, cex=1.7)
 
-boxplot(lng.met$vname ~ lng.met$grp, col=c(rep("grey30",2), rep("grey80",2)))
-legend("bottomleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+boxplot(lng.met$vname ~ lng.met$grp, col=c("grey30", "grey70", "burlywood4", "burlywood2"), ylim=c(0,100),
+        ylab = "Mental Qol Score", xlab = "", cex.lab=1.5, xaxt="n")
+legend("bottomleft", "Mental Qol Score", bty="n", text.font = 2, cex=1.7)
 
-boxplot(lng.cd4$vname ~ lng.cd4$grp, col=c(rep("grey30",2), rep("grey80",2)))
-legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+boxplot(lng.cd4$vname ~ lng.cd4$grp, col=c("grey30", "grey70", "burlywood4", "burlywood2"), ylim=c(0,1800),
+        ylab = "Number of CD4+ T-cells", xlab = "", cex.lab=1.5, xaxt="n")
+legend("topleft", "CD4+ T-cell counts", bty="n", text.font = 2, cex=1.7)
 
-boxplot(lng.vld$vname ~ lng.vld$grp, col=c(rep("grey30",2), rep("grey80",2)))
-legend("topleft", c("Baseline", "Year 2"), bty="n", pch=15, col=c("grey30", "grey80"), pt.cex=2)
+boxplot(lng.vld$vname ~ lng.vld$grp, col=c("grey30", "grey70", "burlywood4", "burlywood2"), ylim=c(-2,10),
+        ylab = "Log10 Standardized Viral Load", xlab = "", cex.lab=1.5, xaxt="n")
+legend("topleft", "Viral Load (copies/ml, log10 scale)", bty="n", text.font = 2, cex=1.7)
+```
 
 
-#Matrix of correlation matrix and plot?
-#Probably into the supplementary report
 
+```{r reproduce table 1 p-values, eval=FALSE, include=FALSE}
+#Codes to reproduce the p-values reported in Table 1 to make sure I understand how to package obtained its p-values
+#Note that the code in this chunk was not ran and no output was produced
+wilcox.test(f.data$age ~ f.data$hd.use)$p.value
+wilcox.test(f.data$bmi ~ f.data$hd.use)$p.value
+chisq.test(table(f.data$white.nh, f.data$hd.use), correct = FALSE)$p.value
+chisq.test(table(f.data$college, f.data$hd.use), correct = FALSE)$p.value
+chisq.test(table(f.data$curnt.smkr, f.data$hd.use), correct = FALSE)$p.value
+wilcox.test(f.data$phy.qol ~ f.data$hd.use)$p.value
+wilcox.test(f.data$ment.qol ~ f.data$hd.use)$p.value
+wilcox.test(f.data$cd4.count ~ f.data$hd.use)$p.value
+wilcox.test(f.data$lg10.vload ~ f.data$hd.use)$p.value
+
+wilcox.test(f.data$phy.qol.y2 ~ f.data$hd.use)$p.value
+wilcox.test(f.data$ment.qol.y2 ~ f.data$hd.use)$p.value
+wilcox.test(f.data$cd4.count.y2 ~ f.data$hd.use)$p.value
+wilcox.test(f.data$lg10.vload.y2 ~ f.data$hd.use)$p.value
+fisher.test(table(f.data$adh.y2, f.data$hd.use))$p.value
+
+```
+
+
+```{r Bayesian Analysis, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+###########################################################################
+# CREDITS: This Bayesian analysis code block was adapted from the professor 
+#   (Camille Moore, PhD) sample code provided on Canvas
+###########################################################################
+
+###########################################################################
+# STEP 1: Define the model
+###########################################################################
+
+stan_file <- write_stan_file("data {
+  int<lower=0> N;                  // number of observations
+  int<lower=0> P;                  // number of predictors including intercept
+  matrix[N, P] X;                  // design matrix (first column = intercept)
+  vector[N] y;                     // outcome
+
+  vector[P] prior_mean;            // prior means for each beta
+  vector<lower=0>[P] prior_sd;     // prior SDs for each beta
+
+  real<lower=0> sigma_prior_sd;    // SD for half-normal prior on sigma
+}
+
+parameters {
+  vector[P] beta;                  // regression coefficients
+  real<lower=0> sigma;             // residual SD
+}
+
+model {
+  // Vectorized priors for regression coefficients
+  beta ~ normal(prior_mean, prior_sd);
+
+  // Half-normal prior for sigma
+  sigma ~ normal(0, sigma_prior_sd);
+
+  // Likelihood
+  y ~ normal(X * beta, sigma);
+
+}
+
+generated quantities {
+  // log likelihood for each observation for calculating model fit stats
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = normal_lpdf(y[n] | X[n] * beta, sigma);}
+  }", dir="../Code", basename='linear_regression_half_normal'
+)
+
+#directory for .Rmd "../Code"
+#directory for regular .R "./Project1/Code"
+
+###########################################################################
+# STEP 2: Compile the Stan program
+###########################################################################
+mod <- cmdstan_model('../Code/linear_regression_half_normal.stan')
+
+###########################################################################
+# STEP 3: Prepare your data to pass to Stan
+# The code below, implemented for each outcome is not efficient, a function similar 
+# to what I created for the frequentist analysis eludes me at the moment given the time 'constraint'
+###########################################################################
+
+#Physical QoL
+y <- f.data$phy.qol.y2
+Xuni <- model.matrix(~ hd.use, data = f.data) 
+Xcrd <- model.matrix(~ hd.use + phy.qol + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+Xadj <- model.matrix(~ hd.use + phy.qol + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- rep(0, Puni); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.phy.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- rep(0, Pcrd); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.phy.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- rep(0, Padj); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.phy.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+#Mental QoL
+y <- f.data$ment.qol.y2
+Xuni <- model.matrix(~ hd.use, data = f.data) 
+Xcrd <- model.matrix(~ hd.use + ment.qol + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+Xadj <- model.matrix(~ hd.use + ment.qol + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- rep(0, Puni); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.ment.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- rep(0, Pcrd); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.ment.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- rep(0, Padj); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.ment.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+#CD4 Count
+y <- f.data$cd4.count.y2
+Xuni <- model.matrix(~ hd.use, data = f.data) 
+Xcrd <- model.matrix(~ hd.use + cd4.count + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+Xadj <- model.matrix(~ hd.use + cd4.count + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- rep(0, Puni); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.cd4.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- rep(0, Pcrd); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.cd4.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- rep(0, Padj); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.cd4.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+#vload Count
+y <- f.data$lg10.vload.y2
+Xuni <- model.matrix(~ hd.use, data = f.data) 
+Xcrd <- model.matrix(~ hd.use + lg10.vload + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+Xadj <- model.matrix(~ hd.use + lg10.vload + adh.y2 + bmi + age + white.nh + college + curnt.smkr, data = f.data) 
+
+Nuni <- nrow(Xuni); Puni <- ncol(Xuni)
+m <- c(1, rep(0, (Puni-1))); s <- rep(1000, Puni)
+sigma_sd <- 1000
+data_list <- list(N = Nuni, P = Puni, X = Xuni, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.vload.uni <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Ncrd <- nrow(Xcrd); Pcrd <- ncol(Xcrd)
+m <- c(1, rep(0, (Pcrd-1))); s <- rep(1000, Pcrd)
+sigma_sd <- 1000
+data_list <- list(N = Ncrd, P = Pcrd, X = Xcrd, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.vload.crd <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+Nadj <- nrow(Xadj); Padj <- ncol(Xadj)
+m <- c(1, rep(0, (Padj-1))); s <- rep(1000, Padj)
+sigma_sd <- 1000
+data_list <- list(N = Nadj, P = Padj, X = Xadj, y = y, prior_mean = m, prior_sd = s, sigma_prior_sd = sigma_sd)
+bayes.vload.adj <- mod$sample(data = data_list, chains = 4, iter_warmup = 5000, iter_sampling = 20000, seed = 6624)
+
+
+#Function for table of Bayesian estimates including variable name (beta), posterior mean & median, SD, median abs dev, cred. interval, R-Hat, ESS bulk & tail 
+bayes.key.ests <- function(fit){
+  draws <- fit$draws()
+  draws_mat <- as_draws_matrix(draws)
+  params <- colnames(draws_mat)
+  params <- params[!grepl("lp__|log_lik", params)]
+  waic.est <- waic(as_draws_matrix(fit$draws("log_lik")))$estimates[3,1] #Get waic
+  ests <- data.frame(fit$summary(variables = params))
+  ests$waic <- waic.est
+  return(ests)
+}
+
+#apply the function defined above to each of the stanMCMC fit objects
+phys.finalBayes.mod <- rbind(cbind(bayes.key.ests(bayes.phy.uni), mod.type = rep("univariate", dim(bayes.key.ests(bayes.phy.uni))[1])),
+                             cbind(bayes.key.ests(bayes.phy.crd), mod.type = rep("crude", dim(bayes.key.ests(bayes.phy.crd))[1])),
+                             cbind(bayes.key.ests(bayes.phy.adj), mod.type = rep("adjusted", dim(bayes.key.ests(bayes.phy.adj))[1])))
+
+ment.finalBayes.mod <- rbind(cbind(bayes.key.ests(bayes.ment.uni), mod.type = rep("univariate", dim(bayes.key.ests(bayes.ment.uni))[1])),
+                             cbind(bayes.key.ests(bayes.ment.crd), mod.type = rep("crude", dim(bayes.key.ests(bayes.ment.crd))[1])),
+                             cbind(bayes.key.ests(bayes.ment.adj), mod.type = rep("adjusted", dim(bayes.key.ests(bayes.ment.adj))[1])))
+
+cd4.finalBayes.mod <- rbind(cbind(bayes.key.ests(bayes.cd4.uni), mod.type = rep("univariate", dim(bayes.key.ests(bayes.cd4.uni))[1])),
+                             cbind(bayes.key.ests(bayes.cd4.crd), mod.type = rep("crude", dim(bayes.key.ests(bayes.cd4.crd))[1])),
+                             cbind(bayes.key.ests(bayes.cd4.adj), mod.type = rep("adjusted", dim(bayes.key.ests(bayes.cd4.adj))[1])))
+
+vload.finalBayes.mod <- rbind(cbind(bayes.key.ests(bayes.vload.uni), mod.type = rep("univariate", dim(bayes.key.ests(bayes.vload.uni))[1])),
+                             cbind(bayes.key.ests(bayes.vload.crd), mod.type = rep("crude", dim(bayes.key.ests(bayes.vload.crd))[1])),
+                             cbind(bayes.key.ests(bayes.vload.adj), mod.type = rep("adjusted", dim(bayes.key.ests(bayes.vload.adj))[1])))
+
+#$model <- c("Physical QoL", "Mental QoL", "CD4+ T-cells", "Log10 Viral Load")
+
+p.out <- with(phys.finalBayes.mod,
+              phys.finalBayes.mod[paste0(variable, mod.type) %in% c("beta[2]univariate", "beta[2]crude", "beta[2]adjusted", "beta[4]adjusted"),])
+p.out$model <- "Physical QoL"
+p.out$mod.type[p.out$variable=="beta[4]"] <- "adjusted (adherence)"
+p.out$waic.diff <- c(NA, diff(p.out$waic))
+p.out <- p.out[, c("model","mod.type", "mean", "sd", "q5", "q95","rhat","waic", "waic.diff")]
+
+m.out <- with(ment.finalBayes.mod,
+              ment.finalBayes.mod[paste0(variable, mod.type) %in% c("beta[2]univariate", "beta[2]crude", "beta[2]adjusted", "beta[4]adjusted"),])
+m.out$model <- "Mental QoL"
+m.out$mod.type[m.out$variable=="beta[4]"] <- "adjusted (adherence)"
+m.out$waic.diff <- c(NA, diff(m.out$waic))
+m.out <- m.out[, c("model","mod.type", "mean", "sd", "q5", "q95","rhat","waic", "waic.diff")]
+
+c.out <- with(cd4.finalBayes.mod,
+              cd4.finalBayes.mod[paste0(variable, mod.type) %in% c("beta[2]univariate", "beta[2]crude", "beta[2]adjusted", "beta[4]adjusted"),])
+c.out$model <- "CD4+ T-cells"
+c.out$mod.type[c.out$variable=="beta[4]"] <- "adjusted (adherence)"
+c.out$waic.diff <- c(NA, diff(c.out$waic))
+c.out <- c.out[, c("model","mod.type", "mean", "sd", "q5", "q95","rhat","waic", "waic.diff")]
+
+v.out <- with(vload.finalBayes.mod,
+              vload.finalBayes.mod[paste0(variable, mod.type) %in% c("beta[2]univariate", "beta[2]crude", "beta[2]adjusted", "beta[4]adjusted"),])
+v.out$model <- "Log10 Viral Load"
+v.out$mod.type[v.out$variable=="beta[4]"] <- "adjusted (adherence)"
+v.out$waic.diff <- c(NA, diff(v.out$waic))
+v.out <- v.out[, c("model","mod.type", "mean", "sd", "q5", "q95","rhat","waic", "waic.diff")]
+
+all.out <- rbind(p.out, m.out, c.out, v.out)
+rownames(all.out) <- NULL
+
+kable(
+  all.out,
+  col.names = c("Treatment Response", "Model Type", "Posterior Mean", "Standard Deviation", "Lower 95% HPDI", "Upper 95% HPDI", "R-Hat", "WAIC", "Change in WAIC"),
+  caption = "Table 2: Bayesian analysis, posterior distribution and model convergence estimates for each treatment response",
+  digits = 2,
+  align = c("l", rep("r", ncol(all.out) - 1)),
+  format = "markdown")
+
+
+#Function to extract the posterior distribution of the indirect effect of treatment adherence mediator, calculate the mean, sd, and HPDI
+bayes.mediator <- function(fit1, fit2) {
+  mediator.posterior <- as.numeric(as_draws_matrix(fit1$draws())[, "beta[2]"]) - as.numeric(as_draws_matrix(fit2$draws())[, "beta[2]"])
+  mean <- mean(mediator.posterior);
+  sd <- sd(mediator.posterior)
+  #quant <- quantile(mediator.posterior, probs=c(0.025, .975)) #Get HPDI instead  
+  ll <- as.numeric(hdi(mediator.posterior, ci = 0.95)[2])
+  ul <- as.numeric(hdi(mediator.posterior, ci = 0.95)[3])
+  return(c(mean, sd, ll, ul))  
+}
+
+bayes.mediation.ests <- data.frame(rbind(bayes.mediator(bayes.phy.crd, bayes.phy.adj),
+                                         bayes.mediator(bayes.ment.crd, bayes.ment.adj),
+                                         bayes.mediator(bayes.cd4.crd, bayes.cd4.adj),
+                                         bayes.mediator(bayes.vload.crd, bayes.vload.adj)))
+bayes.mediation.ests$model <- c("Physical QoL", "Mental QoL", "CD4+ T-cells", "Log10 Viral Load")
+names(bayes.mediation.ests)[1:4] <- c("PosteriorMean", "SD", "5%HPDI", "95%HPDI")
+bayes.mediation.ests <- bayes.mediation.ests[, c(5,1:4)]
+rownames(bayes.mediation.ests) <- NULL
+
+kable(
+  bayes.mediation.ests,
+  col.names = c("Treatment Response", "Posterior Mean", "Standard Deviation", "Lower 95% HPDI", "Upper 95% HPDI"),
+  caption = "Table 3a, Mediation analysis: Indirect effect of treatment adherence ",
+  digits = 3,
+  align = c("l", rep("r", ncol(bayes.mediation.ests) - 1)),
+  format = "markdown")
 
 
 ```
 
 
-```{r Frequentist Models, echo=FALSE}
+```{r Frequentist Models, echo=FALSE, message=FALSE, warning=FALSE}
+#######################
+# Function to fit the univariable, crude, and adjusted linear regression models in the frequentist framework using lm(), 
+# extract  coefficients and relevant performance measures ####
+######################
+
+#anova, Extract R^2, -2log lik, nparameters, dist of residuals. normality test
+#observed and predicted plots
+#no sensitivity analyses, estimates are similar to frequentist
+
+#Model template, models from which coefficient estimates will be estimated and which will be used to check for mediator status of Adherence
+mod.summary <- function(data, y) {
+  
+  x1="hd.use"
+  x2="bmi + age + white.nh + college + curnt.smkr"
+  modif="adh.y2"
+  
+  uni.frm <- as.formula(paste(y[2], "~", x1)) 
+  crd.frm <- as.formula(paste(y[2], "~", x1, "+", y[1], "+", x2))
+  adj.frm <- as.formula(paste(y[2], "~", x1, "+", y[1], "+", modif, "+", x2))
+  
+  univariate.model <- lm(uni.frm, data = data) #Univariable model
+  crude.model <- lm(crd.frm, data = data) #Crude model
+  adjusted.model <- lm(adj.frm, data = data) #ADjusted model
+  
+  #Summarize each lm() object for ease of getting additional estimates
+  u.mod.s <- summary(univariate.model)
+  c.mod.s <- summary(crude.model)
+  a.mod.s <- summary(adjusted.model)
+  
+  #Extract coefficients and performance measures
+  e1 <- (cbind(u.mod.s$coefficients, confint(univariate.model))) #extract coefficients and obtain confidence interval
+  e1 <- cbind(e1, 
+              rep(-2*logLik(univariate.model)[1], nrow(e1)), #Add -2LogLikelihood
+              rep(attr(logLik(univariate.model), 'df'), nrow(e1)), #Add degrees of freedom for -2LL
+              rep(u.mod.s$sigma, nrow(e1)), #Get residual variance
+              rep(u.mod.s$r.squared, nrow(e1)), #Get R-squared
+              rep(u.mod.s$adj.r.squared, nrow(e1)), #Get adjusted R-squared for multivariable model
+              rep(u.mod.s$fstatistic[1], nrow(e1)), #Get ANOVA F-statistic 
+              rep(u.mod.s$fstatistic[2], nrow(e1)), #Numerator df for F-statistic
+              rep(u.mod.s$fstatistic[3], nrow(e1)), #Denominator df for F-statistic
+              rep(1, nrow(e1)), #Code signifying 1,2,3 for univariable, crude, and adjusted models respectively
+              rep(NA, nrow(e1)) #empty cell for variance inflation factor (NA to univariable but available for the other models below)
+              )
+  e1 <- data.frame(e1)
+  e1$vars <- noquote(names(univariate.model$coefficients))
+  
+  e2 <- (cbind(c.mod.s$coefficients, confint(crude.model)))
+  e2 <- cbind(e2, 
+              rep(-2*logLik(crude.model)[1], nrow(e2)),
+              rep(attr(logLik(crude.model), 'df'), nrow(e2)),
+              rep(c.mod.s$sigma, nrow(e2)),
+              rep(c.mod.s$r.squared, nrow(e2)),
+              rep(c.mod.s$adj.r.squared, nrow(e2)),
+              rep(c.mod.s$fstatistic[1], nrow(e2)),
+              rep(c.mod.s$fstatistic[2], nrow(e2)),
+              rep(c.mod.s$fstatistic[3], nrow(e2)),
+              rep(2, nrow(e2)),
+              c(0, car::vif(crude.model))
+  )
+  e2 <- data.frame(e2)
+  e2$vars <- noquote(names(crude.model$coefficients))
+  
+  e3 <- (cbind(a.mod.s$coefficients, confint(adjusted.model)))
+  e3 <- cbind(e3, 
+              rep(-2*logLik(adjusted.model)[1], nrow(e3)),
+              rep(attr(logLik(adjusted.model), 'df'), nrow(e3)),
+              rep(a.mod.s$sigma, nrow(e3)),
+              rep(a.mod.s$r.squared, nrow(e3)),
+              rep(a.mod.s$adj.r.squared, nrow(e3)),
+              rep(a.mod.s$fstatistic[1], nrow(e3)),
+              rep(a.mod.s$fstatistic[2], nrow(e3)),
+              rep(a.mod.s$fstatistic[3], nrow(e3)),
+              rep(3, nrow(e3)),
+              c(0, car::vif(adjusted.model))
+              )
+  e3<- data.frame(e3)
+  e3$vars <- noquote(names(adjusted.model$coefficients))
+  
+  mod.ests <- rbind(e1, e2, e3)
+  
+  colnames(mod.ests) <- c("Estimates", "StdErr", "t.value", "p-value", "LL 95% CI", "UL 95% CI", "-2LogL", "LogL.df", "MSE", "Rsquared", "Adj.Rsquared", "F", "n.df", "d.df", "kind", "VIF", "vars")
+  mod.ests$model.type <- ifelse(mod.ests$kind == 1, "Univariable", ifelse(mod.ests$kind == 2, "Crude", "Adjusted"))
+  
+  return(mod.ests)
+}
+
+#Fit the univariable, crude, and adjusted models
 phy.qol.mod <- mod.summary(data = f.data, y=c("phy.qol", "phy.qol.y2"))
 ment.qol.mod <- mod.summary(data = f.data, y=c("ment.qol", "ment.qol.y2"))
 cd4.mod <- mod.summary(data = f.data, y=c("cd4.count", "cd4.count.y2"))
 vload.mod <- mod.summary(data = f.data, y=c("lg10.vload", "lg10.vload.y2"))
 
+#Physical QoL
+phy.qol.mod1 <- phy.qol.mod[phy.qol.mod$model.type=="Crude", c("Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+phy.qol.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline physical QoL score", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+phy.qol.mod1$model <- "Physical QoL"
+phy.qol.mod1 <- phy.qol.mod1[,c("model", "predictor", "Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+rownames(phy.qol.mod1) <- NULL
+
+#Mental QoL
+ment.qol.mod1 <- ment.qol.mod[ment.qol.mod$model.type=="Crude", c("Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+ment.qol.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline mental QoL score", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+ment.qol.mod1$model <- "Mental QoL"
+ment.qol.mod1 <- ment.qol.mod1[,c("model", "predictor", "Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+rownames(ment.qol.mod1) <- NULL
+
+#CD4+ T-cells
+cd4.mod1 <- cd4.mod[cd4.mod$model.type=="Crude", c("Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+cd4.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline CD4+ T-cell count", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+cd4.mod1$model <- "CD4+ T-cells"
+cd4.mod1 <- cd4.mod1[,c("model", "predictor", "Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+rownames(cd4.mod1) <- NULL
+
+#Log10 viral load
+vload.mod1 <- vload.mod[vload.mod$model.type=="Crude", c("Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+vload.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline log10 viral load (copies/ml)", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+vload.mod1$model <- "Log10 Viral Load"
+vload.mod1 <- vload.mod1[,c("model", "predictor", "Estimates", "StdErr", "p-value", "LL 95% CI", "UL 95% CI", "MSE", "Adj.Rsquared", "VIF")]
+rownames(vload.mod1) <- NULL
+
+all.out.crude.freq <- rbind(phy.qol.mod1, ment.qol.mod1, cd4.mod1, vload.mod1)
+#Kable tableprinted out in the supplementary section
+
+
+
+#######################
+# Function to extract direct and indirect effects from model estimates and calculate indirect effect and mediation fraction
+######################
+
+med.summary <- function(mod, resp) {
+  mediation <- data.frame(crude = mod[mod$model.type=="Crude" & mod$vars=='hd.use', c("Estimates", "StdErr", "p-value")],
+             adjusted = mod[mod$model.type=="Adjusted" & mod$vars=='hd.use', c("Estimates", "StdErr", "p-value")])
+  
+  mediation$indirect.effect <- mediation$crude.Estimates - mediation$adjusted.Estimates
+  
+  mediation$percent.mediation <- (mediation$indirect.effect / mediation$crude.Estimates)*100
+  
+  return(mediation)
+}
+
+#Obtain mediation analysis estimates
+phy.med <- round(med.summary(phy.qol.mod),3)
+ment.med <- round(med.summary(ment.qol.mod),3)
+cd4.med <- round(med.summary(cd4.mod),3)
+vload.med <- round(med.summary(vload.mod),3)
+
+freq.mediation.analysis <- rbind(phy.med, ment.med, cd4.med, vload.med)
+freq.mediation.analysis$model <- c("Physical QoL", "Mental QoL", "CD4+ T-cells", "Log10 Viral Load")
+freq.mediation.analysis <- freq.mediation.analysis[, c("model", "indirect.effect", "percent.mediation")]
+rownames(freq.mediation.analysis) <- NULL
+ 
+kable(
+  freq.mediation.analysis,
+  col.names = c("Treatment Response", "Indirect effect estimate", "Percent mediation"),
+  caption = "Table 3b, Mediation analysis: Indirect effect of treatment adherence ",
+  digits = 3,
+  align = c("l", rep("r", ncol(freq.mediation.analysis) - 1)),
+  format = "markdown")
+
 ```
 
 
+```{r Bayesian Analysis posterior probabilities, echo=FALSE, message=FALSE, warning=FALSE}
+#Table 4, posterior probabilities
+# Function to calculate the posterior probability for a clinically meaningful difference
+pprobs <- function(fit, dif1, dif2) {
+  drw <- as_draws_df(fit$draws())
+  return(round(as.numeric(prop.table(table(drw$`beta[2]` >= dif1 | drw$`beta[2]` <= dif2)))[2] * 100, 2))
+}
+phy.probs <- pprobs(bayes.phy.crd, 2, -2)
+met.probs <- pprobs(bayes.ment.crd, 2, -2)
+cd4.probs <- pprobs(bayes.cd4.crd, 50, -50)
+vlo.probs <- pprobs(bayes.vload.crd, log10(1.5), log10(0.5))
 
-## Discussion
+post.probs<-data.frame(mod = c("Physical QoL", "Mental QoL", "CD4+ T-cells", "Log10 Viral Load"),
+                       prob.ests = c(phy.probs, met.probs, cd4.probs, vlo.probs))
+rownames(post.probs) <- NULL
+
+kable(
+  post.probs,
+  col.names = c("Treatment Response", "Posterior Probability"),
+  caption = "Table 4, Posterior probabilities of a clinically meaning effect",
+  digits = 3,
+  align = c("l", rep("r", ncol(post.probs) - 1)),
+  format = "markdown")
+```
+
+
+## Reproducible Research Information
+
+- GitHub repository for Project 1: https://github.com/yemiaj/BIOS6624/tree/main/Project1 
+
+- Raw data file (from Canvas) location: “C:/Users/Owner/Documents/cuclasses/spring26/bios_6624/BIOS6624/Project1/DataRaw/hiv_6624_final.csv”
+
+- Processed and clean final analysis file location: “C:/Users/Owner/Documents/cuclasses/spring26/bios_6624/BIOS6624/Project1/DataProcessed/hiv_6624_clean.csv”
+
+- Other .gitignore hidden files used by Stan:
+ 
+ -- “C:/Users/Owner/Documents/cuclasses/spring26/bios_6624/BIOS6624/Project1/Code/linear_regression_half_normal.exe”
+ 
+ -- “C:/Users/Owner/Documents/cuclasses/spring26/bios_6624/BIOS6624/Project1/Code/linear_regression_half_normal.stan”
+ 
+ - Code files layout: 
+ 
+ -- “/Code/P1_clean_and_analyses.R” was used to import and clean the raw data from Canvas.
+ 
+ -- Then a clean .csv file was saved into the “/DataProcessed/” folder for final analysis. This program should be run first if reproducibility is to be attempted.
+ 
+  - “C:/Users/Owner/Documents/cuclasses/spring26/bios_6624/BIOS6624/Project1/Reports/project1_report_YemiJege e.Rmd” contains organized (into Markdown code chunks with titles) code used to generate all tables, figures, and Bayesian analysis.
+  
+ - README files in the main and sub-directories were updated with comments to make them more informative.
 
 
 
@@ -166,7 +708,6 @@ vload.mod <- mod.summary(data = f.data, y=c("lg10.vload", "lg10.vload.y2"))
 ## Supplementary Results
 
 ```{r Supplementary Table 1 + 2 & Figure 1, echo=FALSE}
-
 #Create log10 transformed VLOAD, and also keep the original version.
 raw.data$lg.VLOAD <- log10(raw.data$VLOAD)
 
@@ -188,7 +729,7 @@ raw.data1$ADH <- factor(raw.data1$ADH, levels = c(1, 2, 3, 4), labels = c("100%"
 raw.data1.y0 <- raw.data1[raw.data1$years==0, ]
 raw.data1.y2 <- raw.data1[raw.data1$years==2, ]
 
-#Rename the variables in the raw.data1.y2 dataframe and add a suffix of ".2" to the variable names to differentiate from the same variables found in hiv.dat.y0
+#Rename the variables in the raw.data1.y2 dataframe and add a suffix of ".2" to the variable names to differentiate from the same variables found in raw.data1.y0
 names(raw.data1.y2)[-1] <- paste0(names(raw.data1.y2), '.', 2)[-1]
 
 #Merge year0 and year2, and keep all rows of data, including those in year0 but not year2
@@ -269,55 +810,136 @@ sp.tab1.full
 #Note that NA (missing) for smoking status is split and pasted under Adherence
 #This was corrected in Word in the final report. 
 #An alternative solution would be to code NA as a valid category for Smoking variable, this is not good practice
-
-
-##Create Supplementary Table 2
-#Create Table 1 for the main report
-sp.tab2 <- f.data2 |>
-  tbl_summary(by = adh.y2,
-              include = c("age", "bmi", "white.nh", "college", "curnt.smkr", "phy.qol", "ment.qol", "cd4.count", "lg10.vload",
-                          "phy.qol.y2", "ment.qol.y2", "cd4.count.y2", "lg10.vload.y2", "hd.use"),
-              
-              label = list(age ~ "Age at visit (years)", bmi ~ "Body Mass Index (kg/m^2)", white.nh ~ "Race/ethnicity", college ~ "Highest level of education", 
-                           curnt.smkr ~ "Smoking status", 
-                           phy.qol ~ "Baseline: Aggregate physical QoL score", ment.qol ~ "Baseline: Aggregate mental QoL score",
-                           cd4.count ~ "Baseline: CD4+ T cell count", lg10.vload ~ "Baseline: Log10 viral Load (HIV copies per mL of blood)",
-                           phy.qol.y2 ~ "Year 2: Aggregate physical QoL score", ment.qol.y2 ~ "Year 2: Aggregate mental QoL score", 
-                           cd4.count.y2 ~ "Year 2: CD4+ T cell count", lg10.vload.y2 ~ "Year 2: Log10 viral Load (HIV copies per mL of blood)", 
-                           hd.use ~ "Hard drug use at baseline"),
-              
-              type = list(c("age", "bmi", "phy.qol", "ment.qol", "cd4.count", "lg10.vload", "phy.qol.y2", "ment.qol.y2", "cd4.count.y2", "lg10.vload.y2") ~ "continuous",
-                          c("white.nh", "college", "curnt.smkr", "hd.use") ~ "categorical"),
-              
-              statistic = list(all_continuous() ~ "{mean} ({sd})", 
-                               all_categorical() ~ "{n} ({p}%)"),
-              
-              digits = list(all_continuous() ~ 1,
-                            all_categorical() ~ 0),
-              missing_text = "NA (missing)",
-              missing_stat = "{N_miss} ({p_miss}%)") |>
-  add_p(pvalue_fun = label_style_pvalue(digits = 3)) |>
-  add_overall(last = TRUE) |>
-  modify_header(label ~ "**Subject Characteristics**") |>
-  modify_spanning_header(c("stat_1", "stat_2") ~ "**Adherence to meds taken since last visit**") 
-sp.tab2
-
-
-
-##Create Supplementary Figure 1
-# plot distributions and correlations for all the data
-psych::pairs.panels(f.data[, -1], gap = 0, pch = 21, lm = TRUE, ellipses=FALSE)
-
 ```
 
 
+```{r Supplementary Table 2, echo=FALSE}
+#Because treatment adherence did not reach the specified threshold, estimates from the crude model for each outcome is reported below 
+#Physical QOL
+phys.finalBayes.mod1 <- phys.finalBayes.mod[phys.finalBayes.mod$mod.type=="crude" & substr(phys.finalBayes.mod$variable, 1, 4)=='beta', ]
+phys.finalBayes.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline physical QoL score", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+phys.finalBayes.mod1$model <- "Physical QoL"
+phys.finalBayes.mod1 <- phys.finalBayes.mod1[,c("model", "predictor", "mean", "sd", "q5", "q95", "rhat", "ess_bulk", "ess_tail")]
+
+#Mental Qol
+ment.finalBayes.mod1 <- ment.finalBayes.mod[ment.finalBayes.mod$mod.type=="crude" & substr(ment.finalBayes.mod$variable, 1, 4)=='beta', ]
+ment.finalBayes.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline mental QoL score", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+ment.finalBayes.mod1$model <- "Mental QoL"
+ment.finalBayes.mod1 <- ment.finalBayes.mod1[,c("model", "predictor", "mean", "sd", "q5", "q95", "rhat", "ess_bulk", "ess_tail")]
+
+#CD4+ T-cell count
+cd4.finalBayes.mod1 <- cd4.finalBayes.mod[cd4.finalBayes.mod$mod.type=="crude" & substr(cd4.finalBayes.mod$variable, 1, 4)=='beta', ]
+cd4.finalBayes.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline CD4+ T-cell count", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+cd4.finalBayes.mod1$model <- "CD4+ T-cells"
+cd4.finalBayes.mod1 <- cd4.finalBayes.mod1[,c("model", "predictor", "mean", "sd", "q5", "q95", "rhat", "ess_bulk", "ess_tail")]
+
+#Log10 standardized viral load
+vload.finalBayes.mod1 <- vload.finalBayes.mod[vload.finalBayes.mod$mod.type=="crude" & substr(vload.finalBayes.mod$variable, 1, 4)=='beta', ]
+vload.finalBayes.mod1$predictor <- c("Reference subject", "Used hard drug at baseline", "Baseline log10 viral load (copies/ml)", "BMI (kg/m^2)", "Age (in years)", 
+                                   "White non-Hispanic", "College or higher educated", "Current smoker")
+vload.finalBayes.mod1$model <- "Log10 Viral Load"
+vload.finalBayes.mod1 <- vload.finalBayes.mod1[,c("model", "predictor", "mean", "sd", "q5", "q95", "rhat", "ess_bulk", "ess_tail")]
+
+all.out.crude <- rbind(phys.finalBayes.mod1, ment.finalBayes.mod1, cd4.finalBayes.mod1, vload.finalBayes.mod1)
+rownames(all.out.crude) <- NULL
+
+kable(
+  all.out.crude,
+  col.names = c("Treatment Response", "Predictor", "Posterior Mean", "Standard Deviation", "Lower 95% HPDI", "Upper 95% HPDI", "R-Hat", "ESS Bulk", "ESS Tail"),
+  caption = "Supplementary Table 2, Posterior mean, HPDI, and diagnostics for the crude model by treatment response",
+  digits = 2,
+  align = c("l", rep("r", ncol(all.out.crude) - 1)),
+  format = "markdown")
+```
+
+
+```{r Supplementary Table 3, echo=FALSE}
+#Report model estimates from frequentist analysis for comparison to the table above
+rownames(all.out.crude.freq) <- NULL
+
+kable(
+  all.out.crude.freq,
+  col.names = c("Treatment Response", "Predictor", "Coefficient", "Standard Error", "P-value", "Lower 95% CI", "Upper 95% CI", "Residual variance", "Adjusted R-Squared", "Variance Inflation Factor"),
+  caption = "Supplementary Table 3, frequentist analysis coefficient estimate, standard error, confidence interval, and performance measures",
+  digits = 2,
+  align = c("l", rep("r", ncol(all.out.crude.freq) - 1)),
+  format = "markdown")
+```
+
+
+```{r Supplementary Figure 1, echo=FALSE}
+##Create Supplementary Figure 1
+# plot distributions and correlations for all the data
+psych::pairs.panels(f.data[, -1], gap = 0, pch = 21, lm = TRUE, ellipses=FALSE)
+```
+
+
+```{r Supplementary Figure 2, echo=FALSE}
+#For each crude model, obtain triplets of diagnostic plots
+
+#get parameter/coefficient names
+params <- colnames(as_draws_matrix(bayes.phy.crd$draws()))
+params <- params[!grepl("lp__|log_lik", params)]
+
+
+#Physical quality of life
+#autocorrelation plot  
+mcmc_acf(bayes.phy.crd$draws(), pars = params)
+#trace plot
+mcmc_trace(bayes.phy.crd$draws(), pars = params)
+#Chains posterior density overlay
+mcmc_dens_overlay(bayes.phy.crd$draws(), pars = params)
+#Model diagnostics
+#bayes.phy.crd$cmdstan_diagnose()
+
+
+#Mental quality of life
+#autocorrelation plot  
+mcmc_acf(bayes.ment.crd$draws(), pars = params)
+#trace plot
+mcmc_trace(bayes.ment.crd$draws(), pars = params)
+#Chains posterior density overlay
+mcmc_dens_overlay(bayes.ment.crd$draws(), pars = params)
+#Model diagnostics
+#bayes.ment.crd$cmdstan_diagnose()
+
+
+#CD4+ T-cell counts
+#autocorrelation plot  
+mcmc_acf(bayes.cd4.crd$draws(), pars = params)
+#trace plot
+mcmc_trace(bayes.cd4.crd$draws(), pars = params)
+#Chains posterior density overlay
+mcmc_dens_overlay(bayes.cd4.crd$draws(), pars = params)
+#Model diagnostics
+#bayes.cd4.crd$cmdstan_diagnose()
+
+
+#Log10 viral load
+#autocorrelation plot  
+mcmc_acf(bayes.vload.crd$draws(), pars = params)
+#trace plot
+mcmc_trace(bayes.vload.crd$draws(), pars = params)
+#Chains posterior density overlay
+mcmc_dens_overlay(bayes.vload.crd$draws(), pars = params)
+#Model diagnostics
+#bayes.vload.crd$cmdstan_diagnose()
+```
+
+
+
 ```{r Patient Flow Chart, echo=FALSE}
+#Chart not generated, details are instead included as narrative in the first paragraph of the results section
 
 # N unique and N overall
 # N overall and unique in year 0 and 2
 # N lost to follow-up
 # N with missing data in complete case
 
+# Difference in characteristics at baseline and at follow-up year 2, and how that compares to the final set (n=463)
 ```
 
 
