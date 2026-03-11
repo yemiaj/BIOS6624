@@ -40,7 +40,8 @@ Note to self (details not included in the preliminary analysis report due to spa
 -Multicollinearity 
 -These variables are all measured at both timepoints previously defined.
 -Expected sample size is.
-
+-Considering that many models will be fitted for the combinations of predictors and outcomes, a suitable multiplicity control approach will be implemented. 
+-Lost to follow-up or deaths
 
 Note
 The grant document in the OneDrive has comments and highlights
