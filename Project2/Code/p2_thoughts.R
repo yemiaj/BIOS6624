@@ -12,6 +12,24 @@ For aim 2, interaction question. Also interested in the effect of each variable 
 
 Depending on what is found in Aim 1, 
 
+Notes on (03/11/26)
+6624 (03/11/2026)
+For aim 1a and 1b, the change over 1-year is the outcome of interest
+1a, it is baseline value for the outcome, and 1b, it is the change from baseline and 1-year
+You dont have enough information to do a power analysis, as is.
+	We have the data (that she made up) that we can use for power calculation
+	These will be made available
+For amyloid deposition, check if the binary cutoff more significant
+? Data on healthy controls will serve to give you a range of 
+At least 80% power
+For those with 4 outcomes, you can decide scenarios where you would do a joint model vs separate models
+Range of models
+If you plant o fit many models, you need to inform how you would summarize the data
+Some are thinking of a model with 4 predictors but we dont have information on the variance-covariance between these predictors
+Bonferroni not ideal, very conservative
+powertools can be used for interaction power calculation
+
+
 
 
 Interested in baseline as well as change. This is made known in Aim 1b.
