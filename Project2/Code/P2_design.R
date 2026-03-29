@@ -30,3 +30,27 @@ summary(lm(CVLT_CNG3~MCP_1,prelim))
 summary(lm(CORT_CNG3~IL_6,prelim))
 summary(lm(CORT_CNG3~MCP_1,prelim))
 
+
+library(powertools)
+mlrF.partial(N = 175, 
+             p = 4,
+             q = 1,
+             Rsq.red = 0.35,
+             Rsq.full = 0.55,
+             alpha = 0.05,
+             v = TRUE)
+
+
+mlrF.partial(N = 175, 
+             p = 4,
+             q = 1,
+             Rsq.red = 0.5,
+             Rsq.full = 0.55,
+             alpha = 0.05,
+             v = TRUE)
+
+#Literature refernce for Rsquared in the realm of alzheirmers disease
+
+#Add reference to textbook from CU Anschutz
+
+
