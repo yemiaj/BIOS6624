@@ -5,6 +5,7 @@
 ######################
 
 library(powertools) #Required package for power analysis
+library(InteractionPoweR)
 
 #Read in raw preliminary data provided by the study PI
 prelim <- read.csv("./Project2/DataRaw/PrelimData.csv")
@@ -68,12 +69,66 @@ for (i in 1:ncol(pow.mat)) {
 
 #Graph the data in pow.mat
 plot(pow.mat[,1], ylim=c(40, 100), type='o', xlim=c(0,8), lwd=2, xaxt='n', 
-     ylab = 'Statistical Power (%)', xlab ="R^2 Delta", main = "Attained statistical power by effect size for \ndifferent reduced R.Square values")
+     ylab = 'Statistical Power (%)', xlab ="R^2 Delta", main = "Attained statistical power by effect size for \nvarious reduced R.Square values")
 abline(h=seq(0, 100, 5), v = 1:8, col='grey90')
 for (i in 2:9) lines(pow.mat[,i], type='o', col=i, lwd=2, lty=i)
 axis(side = 1, at = c(1:8), labels = delta.R2[1:8])
-legend("topleft", paste0(rev(reduced.R2)), bty='n', col=9:1, lwd=3, lty=9:1, cex=1.2,
+legend("topleft", paste0(rev(reduced.R2)), bty='n', col=9:1, lwd=3, lty=9:1, cex=1,
        title = "Reduced R.Square")
+
+
+#Aim 2
+#Package webpage: https://dbaranger.github.io/InteractionPoweR/
+#Package tutorial peer-reviewed paper: https://journals.sagepub.com/doi/10.1177/25152459231187531
+#Notable features of this package that is relevant to the current project is
+#  (1) the ability to compute power for interactions between two continuous variables
+#  (2) effect sizes are all specified as the cross-sectional Pearson’s correlation (which we have some preliminary data for)
+#power_interaction calculates power via simulation while power_interaction_r2 does the same by solving for Cohen's f^2 (f-square)
+  #my preference is for power_interaction_r2 because the hypothesis test (partial F-test) follows the same as Aim 1a & 1b
+
+power_interaction_r2(
+  N = 175,
+  r.x1.y = .26, #preliminary data provided, rho between x1 (inflammation) and outcome (CVLT and cortical thickness)
+  r.x2.y = .1, #preliminary data not available (fixed at 0.1 to represent low correlation)
+    #This parameter is directly proportion to power, until a certain point, especially when the value of r.x2.y and r.x1.x2 is similar
+  r.x1.x2 = .1, #preliminary data not available (fixed at 0.1 to represent low correlation)
+  
+  r.x1x2.y = .15, #main parameter of interest (interaction effect)
+    #it is the correlation between the interaction term and outcome
+  
+  alpha = 0.05
+)
+#pertub r.x1.y to range between 0.25, 0.35, 0.45 for cognitive measures outcome
+#pertub r.x1.y to range between 0.55, 0.60, 0.65, 0.70 for cortical thickness outcome
+#Observe that range of correlation coefficients merges together nicely
+  #therefore, put them together as seq(0.25, 0.75, .05)
+#perturb interaction effect r.x1x2.y as seq(0.15, 0.50, 0.05)
+
+# Aim 2 Power calculation proper
+x1.y.rho <- seq(0.25, 0.75, .05) #Range of rho for the relationship between x1 (inflammation) and outcome
+int.eff.rho <- seq(0.15, 0.50, 0.05) #interaction effect, rho between interaction term and outcome
+
+rho.pow.mat <- matrix(ncol = length(x1.y.rho), nrow = length(int.eff.rho)) #Empty matrix of NAs that will be filled with estimated power estimate
+
+for (i in 1:ncol(rho.pow.mat)) {
+  for (j in 1:nrow(rho.pow.mat)) {
+    rho.pow.mat[j,i] <- as.numeric(power_interaction_r2(N = 175, r.x1.y = x1.y.rho[i], r.x2.y = .1, r.x1.x2 = .1, r.x1x2.y = int.eff.rho[j], alpha = 0.05)) * 100
+  }
+}
+
+#Graph the data in pow.mat
+plot(rho.pow.mat[,1], ylim=c(40, 100), type='o', lwd=2, xaxt='n', 
+     ylab = 'Statistical Power (%)', xlab ="Effect size for interactio (rho)", 
+     main = "Attained statistical power by interaction effect size for \n various rho between predictor and outcome")
+abline(h=seq(0, 100, 5), v = 1:8, col='grey90')
+for (i in 2:11) lines(rho.pow.mat[,i], type='o', col=i, lwd=2, lty=i)
+axis(side = 1, at = c(1:8), labels = int.eff.rho[1:8])
+legend("center", paste0(rev(x1.y.rho)), bty='n', col=11:1, lwd=3, lty=11:1, cex=1,
+       title = "Rho for X1 and Y")
+#Review legends, it appears incorrect
+
+#Cohen's f^2 as supplementary
+#Explain bell shape of correlation coefficient in the report
 
 
 
