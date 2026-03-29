@@ -66,10 +66,12 @@ for (i in 1:ncol(pow.mat)) {
     pow.mat[j,i] <- mlrF.partial(N = 175, p = 8, q = 1, Rsq.red = reduced.R2[i], Rsq.full = reduced.R2[i]+delta.R2[j], alpha = 0.05) * 100
   }
 }
+pow.mat
 
+par(mfrow=c(1,2))
 #Graph the data in pow.mat
 plot(pow.mat[,1], ylim=c(40, 100), type='o', xlim=c(0,8), lwd=2, xaxt='n', 
-     ylab = 'Statistical Power (%)', xlab ="R^2 Delta", main = "Attained statistical power by effect size for \nvarious reduced R.Square values")
+     ylab = 'Statistical Power (%)', xlab ="R^2 Delta", main = "Aim 1a & 1b: Attained statistical power by effect size for \nvarious reduced R.Square values")
 abline(h=seq(0, 100, 5), v = 1:8, col='grey90')
 for (i in 2:9) lines(pow.mat[,i], type='o', col=i, lwd=2, lty=i)
 axis(side = 1, at = c(1:8), labels = delta.R2[1:8])
@@ -85,6 +87,7 @@ legend("topleft", paste0(rev(reduced.R2)), bty='n', col=9:1, lwd=3, lty=9:1, cex
 #  (2) effect sizes are all specified as the cross-sectional Pearson’s correlation (which we have some preliminary data for)
 #power_interaction calculates power via simulation while power_interaction_r2 does the same by solving for Cohen's f^2 (f-square)
   #my preference is for power_interaction_r2 because the hypothesis test (partial F-test) follows the same as Aim 1a & 1b
+
 
 power_interaction_r2(
   N = 175,
@@ -104,6 +107,11 @@ power_interaction_r2(
   #therefore, put them together as seq(0.25, 0.75, .05)
 #perturb interaction effect r.x1x2.y as seq(0.15, 0.50, 0.05)
 
+#Note that correlation coefficient is mirrored on the y-axis such that you will get the same power estimate if a negative correlation coefficient (of the same magnitude) is specified
+  #for (a pair of related) the parameters in power_interaction_r2(), for example, power is the same for r.x1.x2=r.x2.y = .1 and r.x1.x2=r.x2.y = -.1
+  #This is also applicable to the detectable interaction effect size. 
+  #This can be confirmed by specifying int.eff.rho <- -1* seq(0.15, 0.50, 0.05) in the code below
+
 # Aim 2 Power calculation proper
 x1.y.rho <- seq(0.25, 0.75, .05) #Range of rho for the relationship between x1 (inflammation) and outcome
 int.eff.rho <- seq(0.15, 0.50, 0.05) #interaction effect, rho between interaction term and outcome
@@ -115,16 +123,16 @@ for (i in 1:ncol(rho.pow.mat)) {
     rho.pow.mat[j,i] <- as.numeric(power_interaction_r2(N = 175, r.x1.y = x1.y.rho[i], r.x2.y = .1, r.x1.x2 = .1, r.x1x2.y = int.eff.rho[j], alpha = 0.05)) * 100
   }
 }
+rho.pow.mat
 
 #Graph the data in pow.mat
 plot(rho.pow.mat[,1], ylim=c(40, 100), type='o', lwd=2, xaxt='n', 
-     ylab = 'Statistical Power (%)', xlab ="Effect size for interactio (rho)", 
-     main = "Attained statistical power by interaction effect size for \n various rho between predictor and outcome")
+     ylab = 'Statistical Power (%)', xlab ="Effect size (rho) for interaction effect", 
+     main = "Aim 2: Attained statistical power by interaction effect size for \n various rho between predictor and outcome")
 abline(h=seq(0, 100, 5), v = 1:8, col='grey90')
 for (i in 2:11) lines(rho.pow.mat[,i], type='o', col=i, lwd=2, lty=i)
 axis(side = 1, at = c(1:8), labels = int.eff.rho[1:8])
-legend("center", paste0(rev(x1.y.rho)), bty='n', col=11:1, lwd=3, lty=11:1, cex=1,
-       title = "Rho for X1 and Y")
+legend("center", paste0(rev(x1.y.rho)), bty='n', col=11:1, lwd=3, lty=11:1, cex=1, title = "Rho for X1 and Y")
 #Review legends, it appears incorrect
 
 #Cohen's f^2 as supplementary
