@@ -31,3 +31,7 @@ Project 1 is due on March 2nd. Work is ongoing.
 # 03/02/2026
 
 Project 1 report and slides was submitted today.
+
+# 03/30/2026
+
+Project 2 report and slides will be submitted on this day (tomorrow).
