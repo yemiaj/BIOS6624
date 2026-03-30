@@ -4,7 +4,8 @@
 
 ######################
 
-library(powertools) #Required package for power analysis
+#Required packages for power analysis
+library(powertools) 
 library(InteractionPoweR)
 
 #Read in raw preliminary data provided by the study PI
@@ -55,8 +56,9 @@ for (w in 1:length(q.range)) print(c(q.range[w], mlrF.partial(N = 175, p = 4, q 
 #Add literature reference for Rsquared in the realm of Alzheimers disease
 #Add reference to textbook from CU Anschutz detailing Partial F-test
 
-reduced.R2 <- seq(0.05, 0.45, .05) #Range of R^2 in the reduced model
+reduced.R2 <- seq(0.01, 0.15, .02) #Range of R^2 in the reduced model (See Supplementary section)
 delta.R2 <- seq(0.02, 0.50, 0.02) #These range of delta for R^2 covers the range of values (0.07 to 0.48) estimated from the preliminary data
+                                    #See the Preliminary data heading of Power Analysis section
 
 pow.mat <- matrix(ncol = length(reduced.R2), nrow = length(delta.R2)) #Empty matrix of NAs that will be filled with estimated power estimate
 
@@ -68,15 +70,16 @@ for (i in 1:ncol(pow.mat)) {
 }
 pow.mat
 
-par(mfrow=c(1,2))
+par(mfrow=c(1,1))
 #Graph the data in pow.mat
-plot(pow.mat[,1], ylim=c(40, 100), type='o', xlim=c(0,8), lwd=2, xaxt='n', 
-     ylab = 'Statistical Power (%)', xlab ="R^2 Delta", main = "Aim 1a & 1b: Attained statistical power by effect size for \nvarious reduced R.Square values")
-abline(h=seq(0, 100, 5), v = 1:8, col='grey90')
-for (i in 2:9) lines(pow.mat[,i], type='o', col=i, lwd=2, lty=i)
-axis(side = 1, at = c(1:8), labels = delta.R2[1:8])
-legend("topleft", paste0(rev(reduced.R2)), bty='n', col=9:1, lwd=3, lty=9:1, cex=1,
-       title = "Reduced R.Square")
+plot(pow.mat[,1], ylim=c(40, 100), type='o', xlim=c(1,8), lwd=2, xaxt='n', 
+     ylab = 'Statistical Power (%)', xlab = "R.Squared effect size", main = "Aim 1a & 1b: Attained statistical power by effect size for \nvarious R.Squared values")
+abline(h=seq(0, 100, 2), v = seq(1, 8, .5), col='grey90')
+for (i in 2:8) lines(pow.mat[,i], type='o', col=i, lwd=2, lty=i)
+abline(h=90, col="blue", lty=2, lwd=2)
+axis(side = 1, at = 1:8, labels = delta.R2[1:8])
+legend(2.7, 85, paste0(rev(reduced.R2)), bty='n', col=8:1, lwd=3, lty=8:1, cex=1.5, title = "R.Squared in Reduced Model")
+
 
 
 #Aim 2
@@ -92,9 +95,9 @@ legend("topleft", paste0(rev(reduced.R2)), bty='n', col=9:1, lwd=3, lty=9:1, cex
 power_interaction_r2(
   N = 175,
   r.x1.y = .26, #preliminary data provided, rho between x1 (inflammation) and outcome (CVLT and cortical thickness)
-  r.x2.y = .1, #preliminary data not available (fixed at 0.1 to represent low correlation)
+  r.x2.y = .1, #preliminary data NOT available (fixed at 0.1 to represent low correlation)
     #This parameter is directly proportion to power, until a certain point, especially when the value of r.x2.y and r.x1.x2 is similar
-  r.x1.x2 = .1, #preliminary data not available (fixed at 0.1 to represent low correlation)
+  r.x1.x2 = .1, #preliminary data NOT available (fixed at 0.1 to represent low correlation)
   
   r.x1x2.y = .15, #main parameter of interest (interaction effect)
     #it is the correlation between the interaction term and outcome
@@ -113,7 +116,7 @@ power_interaction_r2(
   #This can be confirmed by specifying int.eff.rho <- -1* seq(0.15, 0.50, 0.05) in the code below
 
 # Aim 2 Power calculation proper
-x1.y.rho <- seq(0.25, 0.75, .05) #Range of rho for the relationship between x1 (inflammation) and outcome
+x1.y.rho <- seq(0.25, 0.70, .05) #Range of rho for the relationship between x1 (inflammation) and outcome
 int.eff.rho <- seq(0.15, 0.50, 0.05) #interaction effect, rho between interaction term and outcome
 
 rho.pow.mat <- matrix(ncol = length(x1.y.rho), nrow = length(int.eff.rho)) #Empty matrix of NAs that will be filled with estimated power estimate
@@ -127,16 +130,16 @@ rho.pow.mat
 
 #Graph the data in pow.mat
 plot(rho.pow.mat[,1], ylim=c(40, 100), type='o', lwd=2, xaxt='n', 
-     ylab = 'Statistical Power (%)', xlab ="Effect size (rho) for interaction effect", 
+     ylab = 'Statistical Power (%)', xlab ="Effect size for interaction effect (rho)", 
      main = "Aim 2: Attained statistical power by interaction effect size for \n various rho between predictor and outcome")
-abline(h=seq(0, 100, 5), v = 1:8, col='grey90')
-for (i in 2:11) lines(rho.pow.mat[,i], type='o', col=i, lwd=2, lty=i)
+abline(h = seq(0, 100, 2), v = seq(1, 8, .5), col='grey90')
+abline(h=90, col="blue", lty=2, lwd=2)
+for (i in 2:10) lines(rho.pow.mat[,i], type='o', col=i, lwd=2, lty=i)
 axis(side = 1, at = c(1:8), labels = int.eff.rho[1:8])
-legend("center", paste0(rev(x1.y.rho)), bty='n', col=11:1, lwd=3, lty=11:1, cex=1, title = "Rho for X1 and Y")
-#Review legends, it appears incorrect
+legend(2.7, 85, paste0(rev(x1.y.rho)), bty='n', col=10:1, lwd=3, lty=10:1, cex=1.5, title = "Rho for X1 (inflammation) and Y (CortThck)")
 
-#Cohen's f^2 as supplementary
-#Explain bell shape of correlation coefficient in the report
+#Cohen's f^2 as supplementary, it is a measure of strength of association on the R-squared scale? f2 >= 0.02, >= 0.15, and >= 0.35 represents small, medium, and large effects respectively
+#Explain bell shape of correlation coefficient in the report. No space, already explained above (this is mirroring on the Y-asix depending on the sign of rho)
 
 
 
