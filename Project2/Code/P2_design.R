@@ -70,17 +70,19 @@ for (i in 1:ncol(pow.mat)) {
 }
 pow.mat
 
-par(mfrow=c(1,1))
+par(mfrow=c(1,2))
 #Graph the data in pow.mat
-plot(pow.mat[,1], ylim=c(40, 100), type='o', xlim=c(1,8), lwd=2, xaxt='n', 
+plot(pow.mat[,1], ylim=c(40, 100), type='o', xlim=c(1,8), lwd=2, xaxt='n',  #plot is truncated because power is 100% with delta >0.16
      ylab = 'Statistical Power (%)', xlab = "R.Squared effect size", main = "Aim 1a & 1b: Attained statistical power by effect size for \nvarious R.Squared values")
 abline(h=seq(0, 100, 2), v = seq(1, 8, .5), col='grey90')
 for (i in 2:8) lines(pow.mat[,i], type='o', col=i, lwd=2, lty=i)
 abline(h=90, col="blue", lty=2, lwd=2)
 axis(side = 1, at = 1:8, labels = delta.R2[1:8])
 legend(2.7, 85, paste0(rev(reduced.R2)), bty='n', col=8:1, lwd=3, lty=8:1, cex=1.5, title = "R.Squared in Reduced Model")
+points(x=3, y=95, pch="+", col="blue", cex=2.5) #Example power calculation scenario described in report
 
-
+#Get citation
+citation("powertools")
 
 #Aim 2
 #Package webpage: https://dbaranger.github.io/InteractionPoweR/
@@ -136,16 +138,39 @@ abline(h = seq(0, 100, 2), v = seq(1, 8, .5), col='grey90')
 abline(h=90, col="blue", lty=2, lwd=2)
 for (i in 2:10) lines(rho.pow.mat[,i], type='o', col=i, lwd=2, lty=i)
 axis(side = 1, at = c(1:8), labels = int.eff.rho[1:8])
-legend(2.7, 85, paste0(rev(x1.y.rho)), bty='n', col=10:1, lwd=3, lty=10:1, cex=1.5, title = "Rho for X1 (inflammation) and Y (CortThck)")
+legend(2.7, 85, paste0(rev(x1.y.rho)), bty='n', col=10:1, lwd=3, lty=10:1, cex=1.5, title = "Rho for X1 (InfMrk) and Y (CortThck)")
+points(x=3, y=92, pch="+", col="blue", cex=2.5) #Example power calculation scenario described in report
 
-#Cohen's f^2 as supplementary, it is a measure of strength of association on the R-squared scale? f2 >= 0.02, >= 0.15, and >= 0.35 represents small, medium, and large effects respectively
+#Get citation
+citation("InteractionPoweR")
+
+#Cohen's f^2 as supplementary. No space. It is a measure of strength of association on the R-squared scale? f2 >= 0.02, >= 0.15, and >= 0.35 represents small, medium, and large effects respectively
 #Explain bell shape of correlation coefficient in the report. No space, already explained above (this is mirroring on the Y-asix depending on the sign of rho)
 
 
+#Output Figure 1 to file
 
+pdf("./Project2/Reports/p2_Figure 1.pdf", width = 15, height = 8)
 
+par(mfrow=c(1,2))
+#Graph the data in pow.mat
+plot(pow.mat[,1], ylim=c(40, 100), type='o', xlim=c(1,8), lwd=2, xaxt='n',  #plot is truncated because power is 100% with delta >0.16
+     ylab = 'Statistical Power (%)', xlab = "R.Squared effect size", main = "Aim 1a & 1b: Attained statistical power by effect size for \nvarious R.Squared values")
+abline(h=seq(0, 100, 2), v = seq(1, 8, .5), col='grey90')
+for (i in 2:8) lines(pow.mat[,i], type='o', col=i, lwd=2, lty=i)
+abline(h=90, col="blue", lty=2, lwd=2)
+axis(side = 1, at = 1:8, labels = delta.R2[1:8])
+legend(2.7, 85, paste0(rev(reduced.R2)), bty='n', col=8:1, lwd=3, lty=8:1, cex=1.5, title = "R.Squared in Reduced Model")
+points(x=3, y=95, pch="+", col="blue", cex=2.5) #Example power calculation scenario described in report
 
+plot(rho.pow.mat[,1], ylim=c(40, 100), type='o', lwd=2, xaxt='n', 
+     ylab = 'Statistical Power (%)', xlab ="Effect size for interaction effect (rho)", 
+     main = "Aim 2: Attained statistical power by interaction effect size for \n various rho between predictor and outcome")
+abline(h = seq(0, 100, 2), v = seq(1, 8, .5), col='grey90')
+abline(h=90, col="blue", lty=2, lwd=2)
+for (i in 2:10) lines(rho.pow.mat[,i], type='o', col=i, lwd=2, lty=i)
+axis(side = 1, at = c(1:8), labels = int.eff.rho[1:8])
+legend(2.7, 85, paste0(rev(x1.y.rho)), bty='n', col=10:1, lwd=3, lty=10:1, cex=1.5, title = "Rho for InfMrk and CortThck")
+points(x=3, y=92, pch="+", col="blue", cex=2.5) #Example power calculation scenario described in report
 
-
-
-
+dev.off()
