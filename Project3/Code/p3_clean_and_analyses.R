@@ -16,21 +16,51 @@ table(frh.dat2$PREVSTRK)
 frh.dat2[frh.dat2$PREVSTRK==1,"RANDID"]
 length(unique(frh.dat2[frh.dat2$PREVSTRK==1,"RANDID"])) #76
 
-#Select baseline 
+#Select needed and potentially useful covariates 
 frh.dat3 <- frh.dat2[,c("RANDID", "PERIOD", "SEX", "TOTCHOL", "AGE", "SYSBP", "DIABP", "CURSMOKE", "CIGPDAY", "BMI", 
                         "DIABETES", "BPMEDS", "HEARTRTE", "GLUCOSE", "educ", "PREVSTRK", "TIME", "HDLC", "LDLC", 
                         "HYPERTEN", "STROKE", "TIMESTRK", "DEATH", "TIMEDTH")]
 
-frh.flat <- reshape(frh.dat3[, c("RANDID", "PERIOD", "STROKE", "TIMESTRK", "DEATH", "TIMEDTH")], 
+#Assess uniqueness of TIMEDTH and TIMESTRK in the long format
+#Sort by subject and period first
+frh.dat3 <- frh.dat3[order(frh.dat3$RANDID, frh.dat3$PERIOD), ]
+frh.dat3$strk.diff <- c(NA, diff(frh.dat3$TIMESTRK)) #Set the first value to NA so diff() works
+
+#Set the first period to NA per patient so strk.diff variable can be reviewed
+#Before that, make sure that there are no duplicates by subject and period
+table(duplicated(paste0(frh.dat3$RANDID, frh.dat3$PERIOD)))
+#No duplicates by subject & period
+frh.dat3$strk.diff <- ifelse(frh.dat3$PERIOD==1, NA, frh.dat3$strk.diff)
+table(frh.dat3$strk.diff, exclude=NULL)
+#TIMESTRK is unique!
+
+#Do the same for TIMEDTH
+frh.dat3$dth.diff <- c(NA, diff(frh.dat3$TIMEDTH)) #Set the first value to NA so diff() works
+frh.dat3$dth.diff <- ifelse(frh.dat3$PERIOD==1, NA, frh.dat3$dth.diff)
+table(frh.dat3$dth.diff, exclude=NULL)
+#TIMEDTH is also unique! The number of NAs is the same as the number of subjects in the flat data (4402, show how I arrived at this)
+
+#This makes life and coding (below) easy!
+
+#Transform data from long to wide
+frh.flat <- reshape(frh.dat3[, c("RANDID", "PERIOD", "STROKE", "TIMESTRK", "DEATH", "TIMEDTH", "DIABETES", "SYSBP")], 
                     idvar = "RANDID", 
                     timevar = "PERIOD",
-                    v.names = c("STROKE", "TIMESTRK", "DEATH", "TIMEDTH"),
+                    v.names = c("STROKE", "TIMESTRK", "DEATH", "TIMEDTH", "DIABETES", "SYSBP"),
                     direction = "wide")
 
 frh.flat <- frh.flat[,c("RANDID", "STROKE.1", "STROKE.2","STROKE.3", "TIMESTRK.1", "TIMESTRK.2", "TIMESTRK.3",
-                        "DEATH.1", "DEATH.2", "DEATH.3", "TIMEDTH.1", "TIMEDTH.2", "TIMEDTH.3")]
+                        "DEATH.1", "DEATH.2", "DEATH.3", "TIMEDTH.1", "TIMEDTH.2", "TIMEDTH.3", "DIABETES.1", "DIABETES.2", "DIABETES.3", "SYSBP.1", "SYSBP.2", "SYSBP.3")]
+
+#Rethink logic and finalize data cleaning
+
+
+
+
+
 
 #Naive coding, pending detailed review of coding logic
+#df$max_val <- apply(df[, c("var1", "var2", "var3")], 1, max, na.rm = TRUE)
 frh.flat$stroke.yes <- pmax(frh.flat$STROKE.1, frh.flat$STROKE.2, frh.flat$STROKE.3, na.rm = TRUE)
 frh.flat$stroke.time <- pmin(frh.flat$TIMESTRK.1, frh.flat$TIMESTRK.2, frh.flat$TIMESTRK.3, na.rm = TRUE)
 
