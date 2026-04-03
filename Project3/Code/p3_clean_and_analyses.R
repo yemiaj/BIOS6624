@@ -17,10 +17,15 @@ frh.dat2[frh.dat2$PREVSTRK==1,"RANDID"]
 length(unique(frh.dat2[frh.dat2$PREVSTRK==1,"RANDID"])) #76
 
 #Select baseline 
-frh.dat3 <- frh.dat2[,c("RANDID", "SEX", "TOTCHOL", "AGE", "SYSBP", "DIABP", "CURSMOKE", "CIGPDAY", "BMI", "DIABETES",
-                        "BPMEDS", "HEARTRTE", "GLUCOSE", "educ", "PREVSTRK", "TIME", "PERIOD", "HDLC", "LDLC", "HYPERTEN",
-                        "DEATH", "STROKE", "TIMESTRK", "TIMEDTH")]
+frh.dat3 <- frh.dat2[,c("RANDID", "PERIOD", "SEX", "TOTCHOL", "AGE", "SYSBP", "DIABP", "CURSMOKE", "CIGPDAY", "BMI", 
+                        "DIABETES", "BPMEDS", "HEARTRTE", "GLUCOSE", "educ", "PREVSTRK", "TIME", "HDLC", "LDLC", 
+                        "HYPERTEN", "STROKE", "TIMESTRK", "DEATH", "TIMEDTH")]
 
+frh.flat <- reshape(frh.dat3[, c("RANDID", "PERIOD", "STROKE", "TIMESTRK", "DEATH", "TIMEDTH")], 
+                    idvar = "RANDID", 
+                    timevar = "PERIOD",
+                    v.names = c("STROKE", "TIMESTRK", "DEATH", "TIMEDTH"),
+                    direction = "wide")
 
 
 #Does the development of other outcomes increases chances of stroke?
