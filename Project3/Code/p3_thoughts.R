@@ -42,3 +42,17 @@ Median and quartile follow-up estimates
 Censored rate
 Some form of best subset model
 
+
+
+#Questions to ask during office hours or on Canvas
+Generally, can we go beyond the 3+5 variables of interest?
+  Can we combine CURSMOKE and CIGPDAY variables? CIGPDAY is a continuous variable.
+Also, for modelling only (not time varying descriptive analysis), can we use blood glucose (GLUCOSE) instead of DIABETES, although the 10-year probability estimate for those with diabetes will be challenging if this is done.
+Should we consider 'educ' variable? Variable description details is not the data dictionary for this variable and we don't know what the 4 levels of this variable mean.
+	Should diastolic BP (DIAB), heart rate (HEARTRTE) be considered? What about prevalent angina (PREVAP), myocardial infarction (PREVMI), hypertensive (PREVHYP)? How about HDLC and LDLC, although these 2 variables will be strongly correlated with  total cholesterol (TOTCHOL)?
+In the project description on Canvas, you wrote that "Your analysis should only be conducted using the first 10 years of follow-up." And this is implemented as recoding FU longer than 10years to 10 years with censoring and event status coded appropriately. Is this exactly what is intended or we can use the full follow-up data but only get 10-year survival probability at 10-years?
+
+Response (from attending office hours on 04/10)
+1)Focus on binary variable, CURSMOKE/CIGPDAY. Same applies to diabetes/glucose
+2)Do not consider other variables. Just the 3+5 specified
+3)Code the FU time using the ifelse() function where times higher than 10years is coded back to 10 years. Code the events accordingly.
