@@ -1,13 +1,13 @@
 #Notes from class, 04/01/2026
 Interested variables: age, diabetes, and BP (systolic) (want for sure to be in the model)
-Not sure if should be included: presence of CHD, BP meds, smoking status (current or not), total cholesterol, and BMI
+Not sure if should be included: prevalent CHD, BP meds (anti-hypertensive meds), smoking status (current or not), total cholesterol, and BMI
 Interested in the baseline version of these.
 No, dont look at competing risk (you can comment on that as limitations)
 Truncate data at 10 years (not interested in time beyond that)
 Not interested in events outside stroke
 Only fixed covariates only, not time-varying covariates
 Descriptive of whether variables are changing over time, which will impact decision of whether future analysis should be time-varying
-Descriptive on whether diabetes and BP changes as time-varying, not others
+Descriptive on whether diabetes and systolic BP changes as time-varying, not others
 Separate models by gender, interested in factors of stroke for both sexes
 Exclude those who have had stroke at baseline
 
@@ -18,8 +18,8 @@ As much n in the model as possible
 Estimates for 10 year survival for ages 40, 50, 60; at 0 risk factors, diabetes, high BP, high BP & diabetes + your own scenario (5 scenarios)
 	baseline, diabetes, and someone with 0 risk factors, and someone with high BP (>160 systolic), someone with diabetes, high BP & diabetes, + additional profile you think is important.
 In coming up with baseline risk profile, average out the continuous.
-Variables to explore (that she is interested in): Coronary HD, BP meds, smoking status, total cholesterol, BMI
-                                                  anti-hypertensive meds, prevalent CHD, smoke, total cholesterol, BMI
+
+
 
 
 Good to dos and analysis plan (see Preliminary Analysis Plan document too):
@@ -41,6 +41,13 @@ Other model fit statistics
 Median and quartile follow-up estimates
 Censored rate
 Some form of best subset model
+#Include number of events in Table 1
+Is there difference in survival by sex? Before and after 10 year cutoff?
+
+Use more than 1 method for CPH test, influenced by events and sample size 
+Describe the profiles, indicate who has higher probability than the other
+
+
 
 
 
