@@ -121,17 +121,26 @@ frh.flat$stroke.event <- ifelse(frh.flat$strk.tim1 > 365.25*10, 0, frh.flat$strk
 table(frh.flat$strk.tim1>365.25*10, frh.flat$strk1) #the number of stroke events recoded back down
 table(frh.flat$stroke.event,frh.flat$strk1)
 
-plot(sex.srv2 <- survfit(Surv(stroke.time, stroke.event)~SEX.1,frh.flat), col=1:2, lwd=5, lty=2, mark.time = FALSE)
+plot(sex.srv2 <- survfit(Surv(stroke.time, stroke.event)~SEX.1,frh.flat), col=1:2, lwd=2, lty=2, mark.time = FALSE)
 
-summary(sex.srv2, times=(1:10)*365.25)
+summary(sex.srv2, times=(0:10)*365.25)
 #Include number of events in Table 1
 
 
+#Create combined flat dataset
+flat.dat0 <- frh.flat[,c("RANDID","DIABETES.1","DIABETES.2","DIABETES.3","SYSBP.1","SYSBP.2","SYSBP.3","SEX.1","strk1","dth1","strk.tim1","dth.tim1","stroke.time","stroke.event")]
+
+frh.dat5 <- frh.dat2[frh.dat2$PERIOD==1, c("RANDID", "PERIOD", "SEX", 
+                                           "AGE", "DIABETES", "SYSBP",
+                                           "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI",
+                                           "STROKE", "TIMESTRK", "DEATH", "TIMEDTH")]
+flat.dat <- merge(frh.dat5, flat.dat0, by="RANDID")
 
 
+#Martingale residual analysis for age, sysbp, totchol, and bmi
 
 
-
+s
 
 
 
