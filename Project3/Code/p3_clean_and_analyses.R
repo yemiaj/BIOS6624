@@ -139,6 +139,74 @@ flat.dat <- merge(frh.dat5, flat.dat0, by="RANDID")
 
 #Martingale residual analysis for age, sysbp, totchol, and bmi
 
+#Write a best subset model using coxph
+#Do all and martingale analysis by sex, https://www.mayo.edu/research/documents/biostat-58pdf/doc-10027288
+#include # of events in Table 1
+#Talk about tie handline
+
+
+#Martingale residual analysis
+m.flat.dat <- flat.dat[flat.dat$SEX==1 & !is.na(flat.dat$BMI),
+                       c("RANDID", "PERIOD", "SEX", "AGE", "DIABETES", "SYSBP", 
+                         "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL","BMI", "stroke.time","stroke.event")]
+m.flat.dat2 <- m.flat.dat[complete.cases(m.flat.dat),] #29 excluded
+
+
+f.flat.dat <- flat.dat[flat.dat$SEX==2 & !is.na(flat.dat$BMI),
+                       c("RANDID", "PERIOD", "SEX", "AGE", "DIABETES", "SYSBP", 
+                         "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL","BMI", "stroke.time","stroke.event")]
+f.flat.dat2 <- f.flat.dat[complete.cases(f.flat.dat),] #81 excluded
+
+
+male.mod.0 <- coxph(Surv(stroke.time, stroke.event)~1, data = m.flat.dat)
+resid.male.mod.0 <- resid(male.mod.0, type = "martingale")
+plot(m.flat.dat$BMI, resid.male.mod.0, xlab="Age", ylab="Residual")
+lines(lowess(m.flat.dat$BMI, resid.male.mod.0, iter=0),lty=2, col=2, lwd=4)
+
+female.mod.0 <- coxph(Surv(stroke.time, stroke.event)~1, data = f.flat.dat)
+resid.female.mod.0 <- resid(female.mod.0, type = "martingale")
+plot(f.flat.dat$BMI, resid.female.mod.0, xlab="Age", ylab="Residual")
+lines(lowess(f.flat.dat$BMI, resid.female.mod.0, iter=0),lty=2, col=2, lwd=4)
+
+
+
+
+
+m.mod0 <- coxph(Surv(stroke.time, stroke.event)~BMI, m.flat.dat2)
+m.mod <- summary(m.mod0)
+sch.test <- cox.zph(m.mod0)
+lab <- paste0("Schoenfeld Test p-value: ", round(sch.test$table[2,3],3))
+lab1 <- paste0("Cox PH: HR [beta] (SE/p-value) = ", 
+               round(m.mod$coefficients[,2],2), " [",
+               round(m.mod$coefficients[,1],2), "]",
+               " (", round(m.mod$coefficients[,3],2), "/",
+              round(m.mod$coefficients[,5],4), ")")
+lab2 <- paste0("C-index: ", round(m.mod$concordance[1],4))
+#lab0 <- paste0("Variable Name: ", vr)
+plot(sch.test)
+abline(h=round(m.mod$coefficients[,1],3), lty=2, col="blue", lwd=3)
+#mtext(lab0, side = 3, line = 3, font=2)
+mtext(lab1, side = 3, line = 2, font=2)
+mtext(lab, side = 3, line = 1, font=2)
+mtext(lab2, side = 3, line = 0, font=2)
+
+
+
+
+
+
+text(x = 5, y = 5, labels = my_label)
+
+
+
+
+
+legend("bottom", "hi")
+abline(h=m.mod$coefficients, lty=2, col=2, lwd=3)
+
+legend()
+
+
 
 s
 
