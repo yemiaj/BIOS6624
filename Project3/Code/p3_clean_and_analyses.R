@@ -143,7 +143,11 @@ flat.dat <- merge(frh.dat5, flat.dat0, by="RANDID")
 #Do all and martingale analysis by sex, https://www.mayo.edu/research/documents/biostat-58pdf/doc-10027288
 #include # of events in Table 1
 #Talk about tie handline
-
+#Figure 1, overlay of males and females KMplot with HR (coef), c-index etc
+#Supp Figure 1, schoenfeld plot and log-log on the right? Or log-log and schoenfeld p-value (state the null) in the plot
+#Supp Figure 2, martingale residuals 
+#Figure 3: requested risk profiles
+#Figure 2: KM plot of males and females showing the prognostic model with 3 levels
 
 #Martingale residual analysis
 m.flat.dat <- flat.dat[flat.dat$SEX==1 & !is.na(flat.dat$BMI),
@@ -169,9 +173,6 @@ plot(f.flat.dat$BMI, resid.female.mod.0, xlab="Age", ylab="Residual")
 lines(lowess(f.flat.dat$BMI, resid.female.mod.0, iter=0),lty=2, col=2, lwd=4)
 
 
-
-
-
 m.mod0 <- coxph(Surv(stroke.time, stroke.event)~BMI, m.flat.dat2)
 m.mod <- summary(m.mod0)
 sch.test <- cox.zph(m.mod0)
@@ -190,6 +191,41 @@ mtext(lab1, side = 3, line = 2, font=2)
 mtext(lab, side = 3, line = 1, font=2)
 mtext(lab2, side = 3, line = 0, font=2)
 
+
+#KM plot skeleton
+temp <- flat.dat[, c("RANDID", "PERIOD", "SEX", "AGE", "DIABETES", "SYSBP","BPMEDS",
+                     "PREVCHD", "CURSMOKE", "TOTCHOL","BMI", "stroke.time","stroke.event")]
+temp$age.cat <- as.numeric(temp$AGE >= median(temp$AGE, na.rm=TRUE))
+temp$sysbp.cat <- as.numeric(temp$SYSBP >= median(temp$SYSBP, na.rm=TRUE))
+temp$totchol.cat <- as.numeric(temp$TOTCHOL >= median(temp$TOTCHOL, na.rm=TRUE))
+temp$bmi.cat <- as.numeric(cut(temp$BMI, right=FALSE, breaks=c(min(temp$BMI, na.rm=T), 18.5, 24.9, 29.9, max(temp$BMI, na.rm=T))))
+
+temp.m <- temp[temp$SEX==1, c("RANDID", "stroke.time","stroke.event", "age.cat", "DIABETES", "sysbp.cat", "BPMEDS",
+                              "PREVCHD", "CURSMOKE", "totchol.cat", "bmi.cat")]
+temp.f <- temp[temp$SEX==2,c("RANDID", "stroke.time","stroke.event", "age.cat", "DIABETES", "sysbp.cat", "BPMEDS",
+                             "PREVCHD", "CURSMOKE", "totchol.cat", "bmi.cat")]
+
+fit1 <- survfit(Surv(temp.m[,2], temp.m[,3])~temp.m[,11], data=temp.m)
+plot(fit1, fun="cloglog", col=1:4, lwd=3, xlab="time", ylab="log(-log(S(t)))")
+
+fit2 <- survfit(Surv(temp.f[,2], temp.f[,3])~temp.f[,11], data=temp.f)
+plot(fit2, fun="cloglog", col=1:4, lwd=3, xlab="time", ylab="log(-log(S(t)))")
+
+  
+as.numeric(temp$BMI >= median(temp$TOTCHOL, na.rm=TRUE))
+
+#Only TOTCHOL and BMI have missing values, AGE and SUSBP doesn't
+
+
+temp
+
+crs.fit <- survfit(Surv(time, status)~group, crs)
+plot(crs.fit, fun="cloglog", col=1:2, lwd=3, xlab="time", ylab="log(-log(S(t)))")
+legend('left', c('Group=0', 'Group=1'), col=1:2, lwd=3, bty='n')
+
+
+Add schoenfeld plot to log-log plot
+Add KM plot and log-rank test too
 
 
 
