@@ -147,9 +147,9 @@ table(frh.flat$strk.tim1>365.25*10, frh.flat$strk1)
 table(frh.flat$stroke.event,frh.flat$strk1)
 
 #Kaplan-Meier plot of stroke time and event and survival function from 0 to 10
-plot(sex.srv2 <- survfit(Surv(stroke.time, stroke.event)~SEX.1,frh.flat), col=1:2, lwd=2, lty=2, mark.time = FALSE)
-summary(sex.srv2, times=(0:10)*365.25)
-#Include number of events in Table 1
+plot(sex.srv2 <- survfit(Surv(stroke.time/365.25, stroke.event) ~ SEX.1, frh.flat), col=1:2, lwd=2, lty=2, mark.time = FALSE, axes = FALSE)
+axis(1,at=seq(0,11,1)); axis(2, at=seq(0,1,.1))
+summary(sex.srv2, times=(0:10))
 
 
 #Create a combined flat dataset, which includes the flat dataset and other variables
@@ -158,14 +158,24 @@ flat.dat0 <- frh.flat[,c("RANDID","PERIOD.1","PERIOD.2","PERIOD.3","DIABETES.1",
 
 frh.dat5 <- frh.dat2[frh.dat2$PERIOD==1, c("RANDID", "PERIOD", "SEX", 
                                            "AGE", "DIABETES", "SYSBP",
-                                           "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI",
-                                           "STROKE", "TIMESTRK", "DEATH", "TIMEDTH")]
+                                           "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI")]
 flat.dat <- merge(frh.dat5, flat.dat0, by="RANDID")
+
+#Save final flat 'clean' data to .csv
+write.csv(flat.dat, "./Project3/DataProcessed/final.frmgham.csv")
+
+
+#tbale 1 shsoul dhave binary for SYSbp, BMI, and number of cases with any missingness for any of the 8 variables of interest.
+
+s
+
 
 #Split flat.dat by gender and use this version for descriptive, preliminary analysis, schoenfeld, martingale analysis
 #Do complete case on flat.dat after selecting needed variables. Use this for variable selection
 #Go back to flat.dat and do completecase for variables in the final model. Then run final model and compare estimates for data here versus the version (if N differs)
 
+m.flat.dat <- flat.dat[flat.dat$SEX==1,]
+f.flat.dat <- flat.dat[flat.dat$SEX==2,]
 
 
 
@@ -186,7 +196,8 @@ flat.dat <- merge(frh.dat5, flat.dat0, by="RANDID")
 #Compare fitted vs observed for survival models
 #Eligible set, exclude first 32. Final set using complete case. Eligible set for univariable analysis. Martingale uses complete case (among continuous variables only)
 #Are there differences in missing vs others?
-
+#Include number of events in Table 1
+#Variables were coded to show risk (i.e. such that HR >1), not protective effect
 
 #Functional form of the conts within the 3, then pairwise interaction. Then for each additional variable (ranked by LRT), test for main effect and pairwise interaction
 #Versus algorithm based
@@ -206,15 +217,121 @@ f.flat.dat <- flat.dat[flat.dat$SEX==2 & !is.na(flat.dat$BMI),
 f.flat.dat2 <- f.flat.dat[complete.cases(f.flat.dat),] #81 excluded
 
 
-male.mod.0 <- coxph(Surv(stroke.time, stroke.event)~1, data = m.flat.dat)
+male.mod.0 <- coxph(Surv(stroke.time, stroke.event)~1, data = m.flat.dat2)
 resid.male.mod.0 <- resid(male.mod.0, type = "martingale")
-plot(m.flat.dat$BMI, resid.male.mod.0, xlab="Age", ylab="Residual")
-lines(lowess(m.flat.dat$BMI, resid.male.mod.0, iter=0),lty=2, col=2, lwd=4)
+plot(m.flat.dat2$BMI, resid.male.mod.0, xlab="Age", ylab="Residual")
+lines(lowess(m.flat.dat2$BMI, resid.male.mod.0, iter=0),lty=2, col=2, lwd=4)
 
-female.mod.0 <- coxph(Surv(stroke.time, stroke.event)~1, data = f.flat.dat)
+female.mod.0 <- coxph(Surv(stroke.time, stroke.event)~1, data = f.flat.dat2)
 resid.female.mod.0 <- resid(female.mod.0, type = "martingale")
-plot(f.flat.dat$BMI, resid.female.mod.0, xlab="Age", ylab="Residual")
-lines(lowess(f.flat.dat$BMI, resid.female.mod.0, iter=0),lty=2, col=2, lwd=4)
+plot(f.flat.dat2$BMI, resid.female.mod.0, xlab="Age", ylab="Residual")
+lines(lowess(f.flat.dat2$BMI, resid.female.mod.0, iter=0),lty=2, col=2, lwd=4)
+
+
+logLik(coxph(Surv(stroke.time, stroke.event)~TOTCHOL+I(TOTCHOL^2), data = m.flat.dat2))
+
+logLik(coxph(Surv(stroke.time, stroke.event)~BMI+I(BMI^2), data = f.flat.dat))
+#Martingale did not reveal any major non-linearity, at least none that fits a quadratic term
+#Other non-linear approaches, e.g. restricted splines may be a better fit, but not pursuing that here
+
+#Model building
+vars <- paste0("AGE + DIABETES+ SYSBP")
+#BPMEDS PREVCHD CURSMOKE TOTCHOL   BMI 
+
+#In a stepwise manner, there is no interaction between age, diabetes, or sysbp
+mod.m.0 <- coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES+ SYSBP, m.flat.dat2)
+mod.m.1 <- coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES+ SYSBP + AGE:DIABETES, m.flat.dat2)
+1-pchisq(logLik(mod.m.0)*-2 - logLik(mod.m.1)*-2, 1)
+
+
+mod.fun <- function(var){
+  form <- as.formula( paste0("Surv(stroke.time, stroke.event) ~ AGE + DIABETES+ SYSBP + ", var))
+  mod <- coxph(form, data=m.flat.dat2)
+}
+#Example usage
+mod.fun("BPMEDS")
+
+
+#BPMEDS PREVCHD CURSMOKE TOTCHOL   BMI 
+#Use LRT to order this variable for inclusion
+
+#Microsoft Copilot used to create the skeleton for this code
+mod.fun <- function(var, data) {
+  
+  # Base model
+  m0 <- as.formula("Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP")
+  mf0 <- coxph(m0, data = data)
+  
+  # Main-effects
+  m1 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP + ", var))
+  mf1 <- coxph(m1, data = data)
+  
+  # Interaction with AGE
+  m2 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ AGE * ", var, " + DIABETES + SYSBP"))
+  mf2 <- coxph(m2, data = data)
+  
+  # Interaction with DIABETES
+  m3 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ DIABETES * ", var, " + AGE + SYSBP"))
+  mf3 <- coxph(m3, data = data)
+  
+  # Interaction with SYSBP
+  m4 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ SYSBP * ", var, " + AGE + DIABETES"))
+  mf4 <- coxph(m4, data = data)
+  
+  # Extract -2 log-likelihoods
+  res <- data.frame(
+    model = c(
+      "Baseline (AGE + DIABETES+ SYSBP)",
+      paste0("Main effects (+ ", var, ")"),
+      paste0("AGE:", var, " interaction"),
+      paste0("DIABETES:", var, " interaction"),
+      paste0("SYSBP:", var, " interaction")
+    ),
+    neg2LogLik = c(
+      -2 * as.numeric(logLik(mf0)),
+      -2 * as.numeric(logLik(mf1)),
+      -2 * as.numeric(logLik(mf2)),
+      -2 * as.numeric(logLik(mf3)),
+      -2 * as.numeric(logLik(mf4))
+    )
+  )
+  res$LRTstat <- (-2 * as.numeric(logLik(mf0))) - res$neg2LogLik
+  res$LRTstat.pvalue <- 1-pchisq(res$LRTstat,1)
+  return(res)
+}
+
+#BPMEDS PREVCHD CURSMOKE TOTCHOL   BMI 
+mod.fun("BPMEDS", m.flat.dat2)
+mod.fun("CURSMOKE", m.flat.dat2)
+
+#females
+#mod.fun("BPMEDS", f.flat.dat2)
+#mod.fun("PREVCHD", f.flat.dat2)
+mod.fun("CURSMOKE", f.flat.dat2)
+mod.fun("TOTCHOL", f.flat.dat2)
+cbind(a,b)
+
+#Final model for males
+male.mod <- coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP*BPMEDS+ CURSMOKE, m.flat.dat2)
+summary(male.mod)
+
+#Final model for females
+female.mod <- coxph(Surv(stroke.time, stroke.event) ~ DIABETES + SYSBP + AGE*TOTCHOL, f.flat.dat2)
+summary(female.mod)
+
+
+-2*logLik(coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP, f.flat.dat2))
+-2*logLik(coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP+ AGE*TOTCHOL, f.flat.dat2))
+
+summary(coxph(Surv(stroke.time, stroke.event) ~ DIABETES + SYSBP + AGE*TOTCHOL, f.flat.dat2))
+
+d
+
+
+
+
+
+
 
 
 m.mod0 <- coxph(Surv(stroke.time, stroke.event)~BMI, m.flat.dat2)
@@ -241,6 +358,7 @@ temp <- flat.dat[, c("RANDID", "PERIOD", "SEX", "AGE", "DIABETES", "SYSBP","BPME
                      "PREVCHD", "CURSMOKE", "TOTCHOL","BMI", "stroke.time","stroke.event")]
 temp$age.cat <- as.numeric(temp$AGE >= median(temp$AGE, na.rm=TRUE))
 temp$sysbp.cat <- as.numeric(temp$SYSBP >= median(temp$SYSBP, na.rm=TRUE))
+temp$sysbp.cat <- ifelse(temp$SYSBP<=160,0,1)
 temp$totchol.cat <- as.numeric(temp$TOTCHOL >= median(temp$TOTCHOL, na.rm=TRUE))
 temp$bmi.cat <- as.numeric(cut(temp$BMI, right=FALSE, breaks=c(min(temp$BMI, na.rm=T), 18.5, 24.9, 29.9, max(temp$BMI, na.rm=T))))
 
@@ -249,12 +367,15 @@ temp.m <- temp[temp$SEX==1, c("RANDID", "stroke.time","stroke.event", "age.cat",
 temp.f <- temp[temp$SEX==2,c("RANDID", "stroke.time","stroke.event", "age.cat", "DIABETES", "sysbp.cat", "BPMEDS",
                              "PREVCHD", "CURSMOKE", "totchol.cat", "bmi.cat")]
 
-fit1 <- survfit(Surv(temp.m[,2], temp.m[,3])~temp.m[,8], data=temp.m)
-fit2 <- survfit(Surv(temp.f[,2], temp.f[,3])~temp.f[,8], data=temp.f)
-
 par(mfrow=c(2,4))
-plot(fit1, lwd=3, col=1:4, ylim=c(0.9,1))
-plot(fit2, lwd=3, col=1:4, ylim=c(0.9,1))
+v<-11
+fit1 <- survfit(Surv(temp.m[,2], temp.m[,3])~temp.m[,v], data=temp.m)
+fit2 <- survfit(Surv(temp.f[,2], temp.f[,3])~temp.f[,v], data=temp.f)
+
+plot(fit1, lwd=3, col=1:4, ylim=c(0.8,1), main=paste0("Males, ", colnames(temp.m)[v]))
+plot(fit2, lwd=3, col=1:4, ylim=c(0.8,1), main=paste0("Females, ", colnames(temp.m)[v]))
+
+
 
 plot(fit1, fun="cloglog", col=1:4, lwd=3, xlab="time", ylab="log(-log(S(t)))")
 plot(fit2, fun="cloglog", col=1:4, lwd=3, xlab="time", ylab="log(-log(S(t)))")
