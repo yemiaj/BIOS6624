@@ -1,35 +1,45 @@
 #######################
 
-#Codes related to the cleaning of data provided for Project 3: Framingham Heart Study: Risk Factors and Probability of Stroke by Sex
+# Codes related to the cleaning of data provided for Project 3: Framingham Heart Study: Risk Factors and Probability of Stroke by Sex
 
 ######################
+
+
+
+##########################
+# Needed R packages 
+#########################
+library(gtsummary) # For creating publication-ready tables
+library(survival) # Survival analysis workhorse
+library(muhaz) # Create hazard plot
+library(MASS) # Needed for implementation of backwards selection
+
 
 #Import data provided on Canvas
 frh.dat <- read.csv("./Project3/DataRaw/frmgham2.csv")
 
 #Imported data has 11627 rows and 4434 unique observations
 nrow(frh.dat); length(unique(frh.dat$RANDID))
+cat("The imported data has", nrow(frh.dat), "observations and", length(unique(frh.dat$RANDID)), "unique subjects.")
 
 #Identify subjects with prevalent stroke at baseline
-exc.stroke <- frh.dat[frh.dat$PREVSTRK==1 & frh.dat$PERIOD==1, "RANDID"]
-#There are no duplicate IDs
-table(duplicated(exc.stroke))
-#and there are 32 of them with prevalent stroke at baseline
-length(unique(exc.stroke))
-#These 32 unique subjects represents 60 observations
-nrow(frh.dat[frh.dat$RANDID %in% exc.stroke,])
-#The breakdown is as follows, 13 participants have 1 rows, 10 have 2 rows and 9 have 3 rows
-table(table(frh.dat[frh.dat$RANDID %in% exc.stroke,1]))
+exc.stroke <- frh.dat[frh.dat$PREVSTRK==1 & frh.dat$PERIOD==1, "RANDID"] #These are the IDs
+table(duplicated(exc.stroke)) #None of them are duplicates
+length(unique(exc.stroke)) #and there are 32 of them with prevalent stroke at baseline
+nrow(frh.dat[frh.dat$RANDID %in% exc.stroke,]) #These 32 unique subjects represents 60 observations
+table(table(frh.dat[frh.dat$RANDID %in% exc.stroke,1])) #The breakdown is as follows, 13 participants have 1 row, 10 have 2 rows and 9 have 3 rows of data in the long format data
 
 
 #Subset original data and remove these 32 participants with prevalent stroke
 frh.dat2 <- frh.dat[!(frh.dat$RANDID %in% exc.stroke), ]
-#There are 4402 unique subjects after excluding the 32 
-length(unique(frh.dat2$RANDID))
+
+#Remaining data after excluding prevalent stroke at baseline
+nrow(frh.dat2); length(unique(frh.dat2$RANDID))
+cat("After excluding subjects with prevalent stroke, the remaining data has", nrow(frh.dat2), "observations and", length(unique(frh.dat2$RANDID)), "unique subjects.")
 
 
 #Select needed covariates (per professor)
-frh.dat3 <- frh.dat2[,c("RANDID", "PERIOD", "SEX",                         #These are identifying variables
+frh.dat3 <- frh.dat2[,c("RANDID", "PERIOD", "SEX",                         #These are identifying/ID-related variables
                         "AGE", "DIABETES", "SYSBP",                        #These variables must be included in the model (per professor)
                         "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI", #These variables should be tested/assessed for inclusion in the model (per professor)
                         "STROKE", "TIMESTRK", "DEATH", "TIMEDTH")]         #Variables needed to ascertain the endpoint of time to stroke
@@ -68,7 +78,7 @@ frh.dat4 <- frh.dat2[,c("RANDID", "PERIOD", "SEX",
 #Sort by subject and period
 frh.dat4 <- frh.dat4[order(frh.dat4$RANDID, frh.dat4$PERIOD), ]
 
-#Transform data from long to wide, including the 2 of the variables that we will check for time-varying changes
+#Transform data from long to wide, including the 2 of the variables that we will check for time-varying changes as secondary analysis
 frh.flat <- reshape(frh.dat4[, c("RANDID", "PERIOD", "SEX", "STROKE", "TIMESTRK", "DEATH", "TIMEDTH", "DIABETES", "SYSBP")], 
                     idvar = "RANDID", 
                     timevar = "PERIOD",
@@ -91,8 +101,7 @@ frh.flat <- frh.flat[,c("RANDID",
 
 #Coding stroke event status and time to stroke
 
-#Stroke and death status is not missing at any period, so the logic below is okay.
-  #However, it will be missing in a wide format if a patient does not have rows of data for any of the 3 PERIODs
+#Stroke and death status is not missing at any period, so the logic below is okay. However, it will be missing in a wide format if a patient does not have rows of data for either of the 3 PERIODs
 table(frh.dat4$STROKE, exclude=NULL)
 table(frh.dat4$DEATH, exclude=NULL)
 
@@ -123,12 +132,12 @@ strk.7.IDs <- frh.flat[frh.flat$strk.tim1>frh.flat$dth.tim1,]$RANDID
 #In none of these is stroke time beyond death time
 #View(frh.flat[(frh.flat$strk1 == frh.flat$dth1) & frh.flat$strk1==1 & (frh.flat$strk.tim1 > frh.flat$dth.tim1),])
 
-#For the 7 cases with stroke time beyond death time, hardcode stroke time back to death time
+#For the 7 cases with stroke time beyond death time, hardcode stroke time back to death time (as instructed by professor)
 frh.flat$strk1[frh.flat$strk.tim1>frh.flat$dth.tim1] <- 0 #Censor these for stroke event (they were already censored, just making sure)
 frh.flat$strk.tim1[frh.flat$strk.tim1>frh.flat$dth.tim1] <- frh.flat[frh.flat$strk.tim1>frh.flat$dth.tim1,]$dth.tim1 #Set stroke time back to death time
 frh.flat[frh.flat$RANDID %in% strk.7.IDs, ] #observe to ensure coding is as expected
 
-library(survival)
+
 #Number of events before and after recoding to under 10 years
 survfit(Surv(strk.tim1, strk1)~1,frh.flat) #383 events
 plot(survfit(Surv(strk.tim1, strk1)~1,frh.flat))
@@ -150,6 +159,14 @@ table(frh.flat$stroke.event,frh.flat$strk1)
 plot(sex.srv2 <- survfit(Surv(stroke.time/365.25, stroke.event) ~ SEX.1, frh.flat), col=1:2, lwd=2, lty=2, mark.time = FALSE, axes = FALSE)
 axis(1,at=seq(0,11,1)); axis(2, at=seq(0,1,.1))
 summary(sex.srv2, times=(0:10))
+sex.srv2
+survdiff(Surv(stroke.time/365.25, stroke.event) ~ SEX.1, frh.flat)
+
+
+#Follow-up between periods. Secondary objective (transiton matrix and colored correlation plot)
+table(flat.dat$PERIOD.2, flat.dat$PERIOD.3, flat.dat$PERIOD.1, exclude=NULL) #No missing at PERIOD.1
+table(flat.dat$PERIOD.2, flat.dat$PERIOD.3, exclude=NULL) #So this is equivalent to the line above
+table(flat.dat$PERIOD.2, flat.dat$PERIOD.3, flat.dat$dth1, exclude=NULL)
 
 
 #Create a combined flat dataset, which includes the flat dataset and other variables
@@ -165,9 +182,435 @@ flat.dat <- merge(frh.dat5, flat.dat0, by="RANDID")
 write.csv(flat.dat, "./Project3/DataProcessed/final.frmgham.csv")
 
 
-#tbale 1 shsoul dhave binary for SYSbp, BMI, and number of cases with any missingness for any of the 8 variables of interest.
+##########################
+# Analysis datasets
+#########################
+flat.dat.complete <- flat.dat[flat.dat$anymiss==0, ]
 
-s
+
+##########################
+# Table 1
+#########################
+#Create categorical variables for SYSBP and BMI
+flat.dat$SYSBP.high <- ifelse(flat.dat$SYSBP>160, 1, 0) #Define high blood pressure as systolic BP > 160 (as instructed in class)
+flat.dat$BMI.cat <- ifelse(is.na(flat.dat$BMI), NA, ifelse(flat.dat$BMI < 18.50, 1, 
+                                                           ifelse(flat.dat$BMI < 25.00, 2,
+                                                                  ifelse(flat.dat$BMI < 30.00, 3, 4)))) #Define high blood pressure as systolic BP > 160 (as instructed in class)
+
+#Count of observations with missing data for any of the variables of interest
+flat.dat$anymiss <- rowSums(is.na(flat.dat[,c("AGE", "DIABETES", "SYSBP", "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI")]))
+
+#Duplicate final data which will be used for Table 1
+flat.dat.tab <- flat.dat
+
+flat.dat.tab$sex.event <- paste0(flat.dat.tab$SEX, flat.dat.tab$stroke.event)
+flat.dat.tab$sex.event <- factor(flat.dat.tab$sex.event, levels = c(10, 11, 20, 21), labels = c("Men/No Stroke", "Men/Yes Stroke", "Women/No Stroke", "Women/Yes Stroke"))
+flat.dat.tab$SEX <- factor(flat.dat.tab$SEX, levels = c(1, 2), labels = c("Men", "Women"))
+flat.dat.tab$DIABETES <- factor(flat.dat.tab$DIABETES, levels = c(1, 0), labels = c("Diabetic", "Not Diabetic"))
+
+flat.dat.tab$BPMEDS <- factor(flat.dat.tab$BPMEDS, levels = c(1, 0), labels = c("Current Use", "Not Currently Used"))
+flat.dat.tab$PREVCHD <- factor(flat.dat.tab$PREVCHD, levels = c(1, 0), labels = c("Prevalent Disease", "Free of Disease"))
+flat.dat.tab$CURSMOKE <- factor(flat.dat.tab$CURSMOKE, levels = c(1, 0), labels = c("Current Smoker", "Not Current Smoker"))
+flat.dat.tab$stroke.event <- factor(flat.dat.tab$stroke.event, levels = c(1, 0), labels = c("Stroke Event", "No Stroke Event"))
+flat.dat.tab$anymiss <- factor(flat.dat.tab$anymiss, levels = c(0, 1, 2), labels = c("No missing data", "Missing for 1 variable", "Missing for 2 variables"))
+flat.dat.tab$SYSBP.high <- factor(flat.dat.tab$SYSBP.high, levels = c(1, 0), labels = c("High Systolic BP (>160 mmHg)", "Normal Systolic BP (<=160 mmHg)"))
+flat.dat.tab$BMI.cat <- factor(flat.dat.tab$BMI.cat, levels = c(1, 2, 3, 4), labels = c("Underweight", "Healthy Weight", "Overweight", "Obese"))
+
+tab1 <- flat.dat.tab |>
+  tbl_summary(by = SEX,
+              
+              include = c("AGE", "DIABETES", "SYSBP", "SYSBP.high", "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI", "BMI.cat", "stroke.event", "anymiss"),
+              
+              label = list(AGE ~ "Age at exam (years)", 
+                           DIABETES ~ "Diabetic (casual glucose >= 200 mg/dL)",
+                           SYSBP ~ "Average systolic blood pressure (mmHg)",
+                           BPMEDS ~ "Use of anti-hypertensive medication",
+                           PREVCHD ~ "Prevalent Coronary Heart Disease", 
+                           CURSMOKE ~ "Current cigarette smoking ", 
+                           TOTCHOL ~ "Serum total cholesterol (mg/dL)", 
+                           BMI ~ "Body Mass Index (kg/m^2", 
+                           stroke.event ~ "Stroke event status", 
+                           SYSBP.high ~ "Systolic blood pressure status", 
+                           BMI.cat ~ "BMI Categories", 
+                           anymiss ~ "Nos. missing values for key variables"),
+              
+              type = list(c("AGE", "SYSBP", "TOTCHOL", "BMI") ~ "continuous",
+                          c("DIABETES", "BPMEDS", "PREVCHD", "CURSMOKE", "stroke.event", "SYSBP.high", "BMI.cat", "anymiss") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd}), [{median}]", 
+                               all_categorical() ~ "{n} ({p}%)"),
+
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
+  
+  add_p(pvalue_fun = label_style_pvalue(digits = 3)) |>
+  add_overall(last = TRUE) |>
+  modify_header(label ~ "**Participants' Baseline Characteristics**") |>
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Participants' Sex**") 
+tab1
+
+
+
+##########################
+# Supplementary Table 1: Table 1 by sex+stroke combination status
+#########################
+supp.tab1 <- flat.dat.tab |>
+  tbl_summary(by = sex.event,
+              
+              include = c("AGE", "DIABETES", "SYSBP", "SYSBP.high", "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI", "BMI.cat", "stroke.event", "anymiss"),
+              
+              label = list(AGE ~ "Age at exam (years)", 
+                           DIABETES ~ "Diabetic (casual glucose >= 200 mg/dL)",
+                           SYSBP ~ "Average systolic blood pressure (mmHg)",
+                           BPMEDS ~ "Use of anti-hypertensive medication",
+                           PREVCHD ~ "Prevalent Coronary Heart Disease", 
+                           CURSMOKE ~ "Current cigarette smoking ", 
+                           TOTCHOL ~ "Serum total cholesterol (mg/dL)", 
+                           BMI ~ "Body Mass Index (kg/m^2", 
+                           stroke.event ~ "Stroke event status", 
+                           SYSBP.high ~ "Systolic blood pressure status", 
+                           BMI.cat ~ "BMI Categories", 
+                           anymiss ~ "Nos. missing values for key variables"),
+              
+              type = list(c("AGE", "SYSBP", "TOTCHOL", "BMI") ~ "continuous",
+                          c("DIABETES", "BPMEDS", "PREVCHD", "CURSMOKE", "stroke.event", "SYSBP.high", "BMI.cat", "anymiss") ~ "categorical"),
+              
+              statistic = list(all_continuous() ~ "{mean} ({sd}), [{median}]", 
+                               all_categorical() ~ "{n} ({p}%)"),
+              
+              digits = list(all_continuous() ~ 1,
+                            all_categorical() ~ 0),
+              
+              missing_text = "NA (missing)",
+              missing_stat = "{N_miss} ({p_miss}%)") |>
+  
+  #add_p(pvalue_fun = label_style_pvalue(digits = 3)) |>
+  #add_overall(last = TRUE) |>
+  modify_header(label ~ "**Participants' Baseline Characteristics**") |>
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Participants' Sex and Stroke Status Combination**") 
+supp.tab1
+
+
+
+##########################
+# Figure 1: Survival and hazard plot by gender
+#########################
+male.fit <- survfit(Surv(stroke.time/365.25, stroke.event) ~ 1, data = flat.dat[flat.dat$SEX==1, ])
+female.fit <- survfit(Surv(stroke.time/365.25, stroke.event) ~ 1, data = flat.dat[flat.dat$SEX==2, ])
+
+times=seq(0,10,1)
+
+male.rsk<-data.frame(rbind(summary(male.fit[1], times=seq(0,10,1))$n.risk))
+#male.rsk<-cbind(male.rsk,0)
+female.rsk<-data.frame(rbind(summary(female.fit[1], times=seq(0,10,1))$n.risk))
+#female.fit<-cbind(female.fit,0)
+
+par(mar=c(7.5, 5, 2, 2)+0.1)
+par(mfrow=c(1,2))
+plot(male.fit, conf.int=FALSE, mark.time=T, xlab='Follow-up time (years)', ylab='Probability of stroke', lwd=2, cex=.8, 
+     xaxt='n', yaxt='n', main='KM Plot of Time to Stroke by Sex',xlim=c(0,10), cex.main=1, ylim=c(0.9,1))
+axis(1,at=seq(0,10,1)); axis(2,at=seq(0.9,1,.01))
+lines(female.fit, conf.int=FALSE, mark.time=T, lwd=2, cex=.8, col=2)
+mtext(side=1, line=4,   at=c(-1),"Nos. at Risk", cex=.8, font=2)
+mtext(side=1, line=5, at=c(-1, times), c("Men:", male.rsk[1,]), cex=1)
+mtext(side=1, line=6, at=c(-1, times), c("Women:", female.rsk[1,]), cex=1, col=2)
+
+summary(male.fit, times=10)
+summary(female.fit, times=10)
+
+legend('left',c("Sex (N/events); 5-year probability",
+                "Men = 1930 / 49; 97.3%", 
+                "Women = 2472 / 62; 97.4%"),
+       bty='n', lty=c(0,1,1),lwd=4, cex=1, text.font=2, col=c(0,1,2))
+
+
+#Hazard plot
+m.haz.plot <- muhaz(flat.dat[flat.dat$SEX==1,]$stroke.time/365.25, flat.dat[flat.dat$SEX==1,]$stroke.event, min.time = 0, max.time = 10, bw.method = 'global', b.cor = "both")
+f.haz.plot <- muhaz(flat.dat[flat.dat$SEX==2,]$stroke.time/365.25, flat.dat[flat.dat$SEX==2,]$stroke.event, min.time = 0, max.time = 10, bw.method = 'global', b.cor = "both")
+plot(m.haz.plot, col=1, lwd=4, main="Instantaneous Risk (Hazard) Plot for Time to Stroke", cex.main=1)
+lines(f.haz.plot, col=2, lwd=4, lty=2)
+legend("left", c("Men", "Women"), col=1:2, bty="n", lty=1, lwd=4, text.font=2)
+
+
+
+#Modelling
+##########################
+# Supp. Figure 1: Univariable Analysis, KM & Cox PH regression
+#########################
+flat.dat.km <- flat.dat[, c("RANDID", "PERIOD", "SEX", "AGE", "DIABETES", "SYSBP.high","BPMEDS",
+                            "PREVCHD", "CURSMOKE", "TOTCHOL","BMI.cat", "stroke.time","stroke.event","anymiss")] #Data specific for creating KM plot
+flat.dat.km$age.cat <- as.numeric(flat.dat.km$AGE >= median(flat.dat.km$AGE, na.rm=TRUE))
+flat.dat.km$totchol.cat <- as.numeric(flat.dat.km$TOTCHOL >= median(flat.dat.km$TOTCHOL, na.rm=TRUE))
+
+flat.dat.km <- flat.dat.km[, c("RANDID", "PERIOD", "SEX", "age.cat", "DIABETES", "SYSBP.high","BPMEDS",
+                               "PREVCHD", "CURSMOKE", "totchol.cat","BMI.cat", "stroke.time","stroke.event", "anymiss")]
+
+uni.km.plot <- function(vari, lab){
+  form <- as.formula(paste0("Surv(stroke.time/365.25, stroke.event) ~ ", vari))
+  m <- survfit(form, data=flat.dat.km[flat.dat.km$SEX==1,])
+  f <- survfit(form, data=flat.dat.km[flat.dat.km$SEX==2,])
+  
+  mc <- survdiff(form, data=flat.dat.km[flat.dat.km$SEX==1,])$chisq
+  fc<- survdiff(form, data=flat.dat.km[flat.dat.km$SEX==2,])$chisq
+  
+  m.mod <- summary(coxph(form, data=flat.dat.km[flat.dat.km$SEX==1,]))
+  f.mod <- summary(coxph(form, data=flat.dat.km[flat.dat.km$SEX==2,]))
+
+  m.zph <- cox.zph(coxph(form, data=flat.dat.km[flat.dat.km$SEX==1,]))$table[2,3]
+  f.zph <- cox.zph(coxph(form, data=flat.dat.km[flat.dat.km$SEX==2,]))$table[2,3]
+  
+  m.lab1 <- paste0("Cox PH: HR [SE] (p-value) = ", round(m.mod$coefficients[,2],2),
+                 " [", round(m.mod$coefficients[,3],2), "]", " (p-value = ", round(m.mod$coefficients[,5],4), ")")
+  m.lab2 <- paste0("C-index: ", round(m.mod$concordance[1],3))
+  m.lab3 <- paste0("Logrank Chisq Statistic: ", round(mc,3))
+  m.lab4 <- paste0("Schoenfeld residual PH test p-value: ", round(m.zph,3))
+  
+  
+  f.lab1 <- paste0("Cox PH: HR [SE] (p-value) = ", round(f.mod$coefficients[,2],2),
+                 " [", round(f.mod$coefficients[,3],2), "]", " (p-value = ", round(f.mod$coefficients[,5],4), ")")
+  f.lab2 <- paste0("C-index: ", round(f.mod$concordance[1],3))
+  f.lab3 <- paste0("Logrank Chisq Statistic: ", round(fc,3))
+  f.lab4 <- paste0("Schoenfeld residual PH test p-value: ", round(f.zph,3))
+  
+  
+  plot(m, lwd=4, xlab="Time (years)", ylab="Stroke Probability", col=1:4, main="", xaxt='n', ylim=c(0.8,1))
+  mtext(paste0("Men: Time to Stroke by ", lab), side = 3, line = 0, font=2, adj=0, cex=.9)
+  axis(1,at=seq(0,10,1))
+  mtext(m.lab1, side = 3, line = -23, font=2, adj=0, col='blue', cex=.8)
+  mtext(m.lab3, side = 3, line = -24, font=2, adj=0, col='blue', cex=.8)
+  mtext(m.lab2, side = 3, line = -25, font=2, adj=0, col='blue', cex=.8)
+  mtext(m.lab4, side = 3, line = -26, font=2, adj=0, col='blue', cex=.8)
+  legend('left', paste0(sort(unique(flat.dat.km[flat.dat.km$SEX==1, vari]))), lwd=4, col=1:4, bty='n')
+
+  
+  plot(f, lwd=4, xlab="Time (years)", ylab="Stroke Probability", col=1:4, main="", xaxt='n', ylim=c(0.8,1))
+  mtext(paste0("Women: Time to Stroke by ", lab), side = 3, line = 0, font=2, adj=0, cex=.9)
+  axis(1,at=seq(0,10,1))
+  mtext(f.lab1, side = 3, line = -23, font=2, adj=0, col='blue', cex=.8)
+  mtext(f.lab3, side = 3, line = -24, font=2, adj=0, col='blue', cex=.8)
+  mtext(f.lab2, side = 3, line = -25, font=2, adj=0, col='blue', cex=.8)
+  mtext(f.lab4, side = 3, line = -26, font=2, adj=0, col='blue', cex=.8)
+  legend('left', paste0(sort(unique(flat.dat.km[flat.dat.km$SEX==2, vari]))), lwd=4, col=1:4, bty='n')
+}
+
+
+par(mfrow=c(4,4))
+uni.km.plot("age.cat", "Age (>=median vs < median)")
+uni.km.plot("DIABETES", "Diabetes status")
+uni.km.plot("SYSBP.high", "Systolic BP (>160 vs <=160 mmmHg)")
+uni.km.plot("BPMEDS", "Anti-hyper. meds use status")
+uni.km.plot("PREVCHD", "Prevalent CHD status")
+uni.km.plot("CURSMOKE", "Smoking status (current vs not-current)")
+uni.km.plot("totchol.cat", "Serum total cholesterol status (>=median vs < median)")
+uni.km.plot("BMI.cat", "BMI categories")
+
+uni.km.plot("anymiss", "Missingness")
+
+
+##########################
+# Figure 1: Martingale analysis for functional form
+#########################
+#Continuous variables: AGE SYSBP TOTCHOL BMI
+martingale.plot<- function(vari, lab){
+  
+  form <- as.formula("Surv(stroke.time/365.25, stroke.event) ~ 1")
+  
+  m <- coxph(form, data=flat.dat.complete[flat.dat.complete$SEX==1,])
+  resid.m <- resid(m, type = "martingale")
+  plot(flat.dat.complete[flat.dat.complete$SEX==1, vari], resid.m, xlab=lab, ylab="Martingale Residual", main = paste0("Men: Martingale Residual Plot for ", lab))
+  lines(lowess(flat.dat.complete[flat.dat.complete$SEX==1, vari], 
+               resid.m, iter=0),lty=2, col=2, lwd=4)
+  
+  f <- coxph(form, data=flat.dat.complete[flat.dat.complete$SEX==2,])
+  resid.f <- resid(f, type = "martingale")
+  plot(flat.dat.complete[flat.dat.complete$SEX==2, vari], resid.f, xlab=lab, ylab="Martingale Residual", main = paste0("Women: Martingale Residual Plot for ", lab))
+  lines(lowess(flat.dat.complete[flat.dat.complete$SEX==2, vari], 
+               resid.f, iter=0),lty=2, col=2, lwd=4)
+}
+par(mfrow=c(2,4))
+martingale.plot("AGE", "Age at exam (years)")
+martingale.plot("SYSBP", "Average systolic blood pressure (mmHg)")
+martingale.plot("TOTCHOL", "Serum total cholesterol (mg/dL)")
+martingale.plot("BMI", "Body Mass Index (kg/m^2)")
+
+
+logLik(coxph(Surv(stroke.time, stroke.event)~TOTCHOL+I(TOTCHOL^2), data = m.flat.dat2))
+
+logLik(coxph(Surv(stroke.time, stroke.event)~BMI+I(BMI^2), data = f.flat.dat))
+
+#Martingale did not reveal any major non-linearity, at least none that fits a quadratic term
+#Other non-linear approaches, e.g. restricted splines may be a better fit, but not pursuing that here
+
+
+
+##########################
+# Primary analysis: Build the final model (use complete data, then use data with non-missing values for final variables in the model)
+#########################
+flat.dat.comp2 <- flat.dat.complete[,c("RANDID", "stroke.time", "stroke.event", "SEX", "AGE", "DIABETES", "SYSBP", "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI")]
+
+#backwards selection, then test for interaction (keep an eye on number of events)
+
+#Full model for males and females
+male.full.model <- coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP + BPMEDS + PREVCHD + CURSMOKE + TOTCHOL + BMI, data = flat.dat.comp2[flat.dat.comp2$SEX==1, ])
+female.full.model <- coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP + BPMEDS + PREVCHD + CURSMOKE + TOTCHOL + BMI, data = flat.dat.comp2[flat.dat.comp2$SEX==2, ])
+
+# Perform backward selection
+male_backward <- stepAIC(male.full.model, direction = "backward", trace = 0)
+summary(male_backward)$coefficients
+names(male_backward$coefficients) #Variables in the final backward model for maless
+
+female_backward <- stepAIC(female.full.model, direction = "backward", trace = 0)
+summary(female_backward)$coefficients
+names(female_backward$coefficients) #Variables in the final backward model for females
+
+
+#Function to assess interaction between a candidate variable and variables already in the model
+
+#Function for males
+#Modified function from Microsoft Copilot
+male.interaction <- function(var, data) {
+  
+  # Base model
+  m0 <- as.formula("Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP + CURSMOKE")
+  mf0 <- coxph(m0, data = data)
+  
+  # Main-effects
+  m1 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ AGE + DIABETES+ SYSBP + CURSMOKE +", var))
+  mf1 <- coxph(m1, data = data)
+  
+  # Interaction with AGE
+  m2 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ AGE * ", var, " + DIABETES + SYSBP + CURSMOKE"))
+  mf2 <- coxph(m2, data = data)
+  
+  # Interaction with DIABETES
+  m3 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ DIABETES * ", var, " + AGE + SYSBP + CURSMOKE"))
+  mf3 <- coxph(m3, data = data)
+  
+  # Interaction with SYSBP
+  m4 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ SYSBP * ", var, " + AGE + DIABETES + CURSMOKE"))
+  mf4 <- coxph(m4, data = data)
+  
+  # Interaction with CURSMOKE
+  m5 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ CURSMOKE * ", var, " + AGE + DIABETES + SYSBP"))
+  mf5 <- coxph(m5, data = data)
+  
+  
+  # Extract -2 log-likelihoods
+  res <- data.frame(
+    model = c(
+      "Baseline (AGE + DIABETES + SYSBP + CURSMOKE)",
+      paste0("Main effects (+ ", var, ")"),
+      paste0("AGE:", var, " int."),
+      paste0("DIABETES:", var, " int."),
+      paste0("SYSBP:", var, " int."),
+      paste0("CURSMOKE:", var, " int.")
+    ),
+    neg2LogLik = c(
+      -2 * as.numeric(logLik(mf0)),
+      -2 * as.numeric(logLik(mf1)),
+      -2 * as.numeric(logLik(mf2)),
+      -2 * as.numeric(logLik(mf3)),
+      -2 * as.numeric(logLik(mf4)),
+      -2 * as.numeric(logLik(mf5))
+    )
+  )
+  res$LRTstat <- (-2 * as.numeric(logLik(mf0))) - res$neg2LogLik
+  res$LRTstat.pvalue <- 1-pchisq(res$LRTstat,1)
+  res <- cbind(res[,1], round(res[,2:4],3))
+  names(res)[1] <- "model"
+  return(res)
+}
+#BPMEDS PREVCHD CURSMOKE TOTCHOL   BMI 
+m1 <- male.interaction("BPMEDS", flat.dat.comp2[flat.dat.comp2$SEX==1, ])
+m2 <- male.interaction("PREVCHD", flat.dat.comp2[flat.dat.comp2$SEX==1, ])
+m3 <- male.interaction("TOTCHOL", flat.dat.comp2[flat.dat.comp2$SEX==1, ])
+m4 <- male.interaction("BMI", flat.dat.comp2[flat.dat.comp2$SEX==1, ])
+
+cbind(m1, m2, m3, m4)
+
+#Function for females, even though backwards selection identified AGE and SYSBP only, DIABETES is added because this was specified by the PI
+female.interaction <- function(var, data) {
+  
+  # Base model
+  m0 <- as.formula("Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP")
+  mf0 <- coxph(m0, data = data)
+  
+  # Main-effects
+  m1 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP + ", var))
+  mf1 <- coxph(m1, data = data)
+  
+  # Interaction with AGE
+  m2 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ AGE * ", var, " + DIABETES + SYSBP"))
+  mf2 <- coxph(m2, data = data)
+  
+  # Interaction with DIABETES
+  m3 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ DIABETES * ", var, " + AGE + SYSBP"))
+  mf3 <- coxph(m3, data = data)
+  
+  # Interaction with SYSBP
+  m4 <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ SYSBP * ", var, " + AGE + DIABETES"))
+  mf4 <- coxph(m4, data = data)
+  
+  # Extract -2 log-likelihoods
+  res <- data.frame(
+    model = c(
+      "Baseline (AGE + DIABETES+ SYSBP)",
+      paste0("Main effects (+ ", var, ")"),
+      paste0("AGE:", var, " int."),
+      paste0("DIABETES:", var, " int."),
+      paste0("SYSBP:", var, " int.")
+    ),
+    neg2LogLik = c(
+      -2 * as.numeric(logLik(mf0)),
+      -2 * as.numeric(logLik(mf1)),
+      -2 * as.numeric(logLik(mf2)),
+      -2 * as.numeric(logLik(mf3)),
+      -2 * as.numeric(logLik(mf4))
+    )
+  )
+  res$LRTstat <- (-2 * as.numeric(logLik(mf0))) - res$neg2LogLik
+  res$LRTstat.pvalue <- 1-pchisq(res$LRTstat,1)
+  res <- cbind(res[,1], round(res[,2:4],3))
+  names(res)[1] <- "model"
+  return(res)
+}
+
+f1 <- female.interaction("BPMEDS", flat.dat.comp2[flat.dat.comp2$SEX==2, ])
+f2 <- female.interaction("PREVCHD", flat.dat.comp2[flat.dat.comp2$SEX==2, ])
+f3 <- female.interaction("CURSMOKE", flat.dat.comp2[flat.dat.comp2$SEX==2, ])
+f4 <- female.interaction("TOTCHOL", flat.dat.comp2[flat.dat.comp2$SEX==2, ])
+f5 <- female.interaction("BMI", flat.dat.comp2[flat.dat.comp2$SEX==2, ])
+
+cbind(f1, f2, f3, f4, f5)
+
+##########################
+# Final model
+#########################
+
+male.final.model <- coxph(Surv(stroke.time, stroke.event) ~ AGE + DIABETES + SYSBP * BPMEDS, data = flat.dat.comp2[flat.dat.comp2$SEX==1, ])
+summary(male.final.model)
+
+female.final.model <- coxph(Surv(stroke.time, stroke.event) ~ DIABETES + SYSBP + AGE * TOTCHOL, data = flat.dat.comp2[flat.dat.comp2$SEX==2, ])
+summary(female.final.model)
+
+#Build model (check impac of binary sysbp and cont bmi)
+#Risk profiles
+
+
+#Reproduce the p-values in Table 1
+#Reason for backwards
+#Multiple testing as limitation
+#Proximity of collection of risk factors
+
+
+
+#proportion of missingness by sex. This will make it into Table 1, so not needed here
+#prop.table(table(flat.dat$anymiss, flat.dat$SEX),2)*100 
+
+
 
 
 #Split flat.dat by gender and use this version for descriptive, preliminary analysis, schoenfeld, martingale analysis
@@ -250,6 +693,14 @@ mod.fun <- function(var){
 }
 #Example usage
 mod.fun("BPMEDS")
+
+
+#Exhaustive model selection 
+https://rpubs.com/kaz_yos/exhaustive
+#all subset regression
+https://rpubs.com/kaz_yos/all-subset
+#bess
+https://cran.r-project.org/web/packages/BeSS/BeSS.pdf
 
 
 #BPMEDS PREVCHD CURSMOKE TOTCHOL   BMI 
