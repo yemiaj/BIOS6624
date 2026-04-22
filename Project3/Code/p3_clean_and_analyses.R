@@ -155,18 +155,15 @@ frh.flat$stroke.event <- ifelse(frh.flat$strk.tim1 > 365.25*10, 0, frh.flat$strk
 table(frh.flat$strk.tim1>365.25*10, frh.flat$strk1)
 table(frh.flat$stroke.event,frh.flat$strk1)
 
+frh.flat$stroke.time <- frh.flat$stroke.time/365.25 #Change the time scale from days to years
+
 #Kaplan-Meier plot of stroke time and event and survival function from 0 to 10
-plot(sex.srv2 <- survfit(Surv(stroke.time/365.25, stroke.event) ~ SEX.1, frh.flat), col=1:2, lwd=2, lty=2, mark.time = FALSE, axes = FALSE)
+plot(sex.srv2 <- survfit(Surv(stroke.time, stroke.event) ~ SEX.1, frh.flat), col=1:2, lwd=2, lty=2, mark.time = FALSE, axes = FALSE)
 axis(1,at=seq(0,11,1)); axis(2, at=seq(0,1,.1))
 summary(sex.srv2, times=(0:10))
 sex.srv2
-survdiff(Surv(stroke.time/365.25, stroke.event) ~ SEX.1, frh.flat)
+survdiff(Surv(stroke.time, stroke.event) ~ SEX.1, frh.flat)
 
-
-#Follow-up between periods. Secondary objective (transiton matrix and colored correlation plot)
-table(flat.dat$PERIOD.2, flat.dat$PERIOD.3, flat.dat$PERIOD.1, exclude=NULL) #No missing at PERIOD.1
-table(flat.dat$PERIOD.2, flat.dat$PERIOD.3, exclude=NULL) #So this is equivalent to the line above
-table(flat.dat$PERIOD.2, flat.dat$PERIOD.3, flat.dat$dth1, exclude=NULL)
 
 
 #Create a combined flat dataset, which includes the flat dataset and other variables
@@ -181,11 +178,24 @@ flat.dat <- merge(frh.dat5, flat.dat0, by="RANDID")
 #Count of observations with missing data for any of the variables of interest
 flat.dat$anymiss <- rowSums(is.na(flat.dat[,c("AGE", "DIABETES", "SYSBP", "BPMEDS", "PREVCHD", "CURSMOKE", "TOTCHOL", "BMI")]))
 
+flat.dat$period.ltfu12 <- rowSums(is.na(flat.dat[,c("PERIOD.1", "PERIOD.2")])) #redundant because no missing at baseline
+flat.dat$period.ltfu23 <- rowSums(is.na(flat.dat[,c("PERIOD.2", "PERIOD.3")]))
+flat.dat$period.ltfu123 <- rowSums(is.na(flat.dat[,c("PERIOD.1", "PERIOD.2", "PERIOD.3")])) #redundant because no missing at baseline, so this is equal to period.ltfu23
+
+flat.dat$sysbp.miss.fu <- rowSums(is.na(flat.dat[,c("SYSBP.1", "SYSBP.2", "SYSBP.3")]))
+flat.dat$diabetes.miss.fu <- rowSums(is.na(flat.dat[,c("DIABETES.1", "DIABETES.2", "DIABETES.3")]))
+
 #Create categorical variables for SYSBP and BMI
-flat.dat$SYSBP.high <- ifelse(flat.dat$SYSBP>=160, 1, 0) #Define high blood pressure as systolic BP >= 160 (as instructed in class)
+flat.dat$SYSBP.high <- ifelse(is.na(flat.dat$SYSBP), NA, ifelse(flat.dat$SYSBP>=160, 1, 0)) #Define high blood pressure as systolic BP >= 160 (as instructed in class)
 flat.dat$BMI.cat <- ifelse(is.na(flat.dat$BMI), NA, ifelse(flat.dat$BMI < 18.50, 1, 
                                                            ifelse(flat.dat$BMI < 25.00, 2,
                                                                   ifelse(flat.dat$BMI < 30.00, 3, 4))))
+
+#Classify sysbp at follow-up periods (for time-varying analysis)
+flat.dat$SYSBP.high.p1 <- ifelse(is.na(flat.dat$SYSBP.1), NA, ifelse(flat.dat$SYSBP.1>=160, 1, 0))
+flat.dat$SYSBP.high.p2 <- ifelse(is.na(flat.dat$SYSBP.2), NA, ifelse(flat.dat$SYSBP.2>=160, 1, 0))
+flat.dat$SYSBP.high.p3 <- ifelse(is.na(flat.dat$SYSBP.3), NA, ifelse(flat.dat$SYSBP.3>=160, 1, 0))
+
 
 #Create a 4-level categorical variable for the combinations for Sex and Stroke event
 flat.dat$sex.event <- paste0(flat.dat$SEX, flat.dat$stroke.event)
@@ -303,10 +313,10 @@ supp.tab1
 ##########################
 # Figure 1: Survival and hazard plot by gender
 #########################
-male.fit <- survfit(Surv(stroke.time/365.25, stroke.event) ~ 1, data = flat.dat[flat.dat$SEX==1, ])
-female.fit <- survfit(Surv(stroke.time/365.25, stroke.event) ~ 1, data = flat.dat[flat.dat$SEX==2, ])
+male.fit <- survfit(Surv(stroke.time, stroke.event) ~ 1, data = flat.dat[flat.dat$SEX==1, ])
+female.fit <- survfit(Surv(stroke.time, stroke.event) ~ 1, data = flat.dat[flat.dat$SEX==2, ])
 
-#times=seq(0,10,1)
+times=seq(0,10,1)
 
 male.rsk<-data.frame(rbind(summary(male.fit[1], times=seq(0,10,1))$n.risk))
 #male.rsk<-cbind(male.rsk,0)
@@ -333,13 +343,51 @@ legend('left',c("Sex (N/events); 5-year probability",
 
 
 #Hazard plot
-m.haz.plot <- muhaz(flat.dat[flat.dat$SEX==1,]$stroke.time/365.25, flat.dat[flat.dat$SEX==1,]$stroke.event, min.time = 0, max.time = 10, bw.method = 'global', b.cor = "both")
-f.haz.plot <- muhaz(flat.dat[flat.dat$SEX==2,]$stroke.time/365.25, flat.dat[flat.dat$SEX==2,]$stroke.event, min.time = 0, max.time = 10, bw.method = 'global', b.cor = "both")
+m.haz.plot <- muhaz(flat.dat[flat.dat$SEX==1,]$stroke.time, flat.dat[flat.dat$SEX==1,]$stroke.event, min.time = 0, max.time = 10, bw.method = 'global', b.cor = "both")
+f.haz.plot <- muhaz(flat.dat[flat.dat$SEX==2,]$stroke.time, flat.dat[flat.dat$SEX==2,]$stroke.event, min.time = 0, max.time = 10, bw.method = 'global', b.cor = "both")
 plot(m.haz.plot, col=1, lwd=4, main="Instantaneous Risk (Hazard) Plot for Time to Stroke", cex.main=1)
 lines(f.haz.plot, col=2, lwd=4, lty=2)
 legend("left", c("Men", "Women"), col=1:2, bty="n", lty=1, lwd=4, text.font=2)
 
 
+#parametric accelerated failure-time models
+
+#Males
+#-2logLik, # params
+#exponential: 677.4204, 1
+#extreme: 685.0366, 2
+#logistic: 684.9501,2
+#gaussian: 682.4213, 2
+#weibull: 671.1462, 2
+#rayleigh: 676.9741,1
+#lognormal: 671.9517, 2
+#loglogistic: 671.2038, 2
+#t: 689.833, 2
+
+#Among males: loglogistic, lognormal, weibull are an improvement over exponential distribution for hazard and may be a good choice of modelling.
+
+summary(survreg(Surv(stroke.time, stroke.event)~1, data=flat.dat[flat.dat$SEX==1,], dist="t"))
+-2*as.numeric(logLik(survreg(Surv(stroke.time, stroke.event)~1, data=flat.dat[flat.dat$SEX==1,], dist="t")))
+#dist= should be one of “extreme”, “logistic”, “gaussian”, “weibull”, “exponential”, “rayleigh”, “loggaussian”, “lognormal”, “loglogistic”, “t”
+
+
+#Females
+#-2logLik, # params
+#exponential: 861.4281, 1
+#extreme: 877.4171, 2
+#logistic: 877.3071,2
+#gaussian: 874.1355, 2
+#weibull: 859.8811, 2
+#rayleigh: 881.5393,1
+#lognormal: 865.2464, 2
+#loglogistic: 860.0413, 2
+#t: 883.4625, 2
+
+#Among females: exponential distribution for hazard appears to be the best choice
+
+summary(survreg(Surv(stroke.time, stroke.event)~1, data=flat.dat[flat.dat$SEX==2,], dist="t"))
+-2*as.numeric(logLik(survreg(Surv(stroke.time, stroke.event)~1, data=flat.dat[flat.dat$SEX==2,], dist="t")))
+#dist= should be one of “extreme”, “logistic”, “gaussian”, “weibull”, “exponential”, “rayleigh”, “loggaussian”, “lognormal”, “loglogistic”, “t”
 
 
 
@@ -356,7 +404,7 @@ flat.dat.km <- flat.dat.km[, c("RANDID", "PERIOD", "SEX", "age.cat", "DIABETES",
                                "PREVCHD", "CURSMOKE", "totchol.cat","BMI.cat", "stroke.time","stroke.event", "anymiss")]
 
 uni.km.plot <- function(vari, lab){
-  form <- as.formula(paste0("Surv(stroke.time/365.25, stroke.event) ~ ", vari))
+  form <- as.formula(paste0("Surv(stroke.time, stroke.event) ~ ", vari))
   m <- survfit(form, data=flat.dat.km[flat.dat.km$SEX==1,])
   f <- survfit(form, data=flat.dat.km[flat.dat.km$SEX==2,])
   
@@ -423,7 +471,7 @@ uni.km.plot("anymiss", "Missingness")
 #Continuous variables: AGE SYSBP TOTCHOL BMI
 martingale.plot<- function(vari, lab){
   
-  form <- as.formula("Surv(stroke.time/365.25, stroke.event) ~ 1")
+  form <- as.formula("Surv(stroke.time, stroke.event) ~ 1")
   
   m <- coxph(form, data=flat.dat.complete[flat.dat.complete$SEX==1,])
   resid.m <- resid(m, type = "martingale")
@@ -636,21 +684,159 @@ plot(cox.zph(female.final.model))
 male.riskset <- rbind(expand.grid(AGE=c(40,50,60), DIABETES=c(0,1), SYSBP.high=c(0,1), BPMEDS=0),
                       expand.grid(AGE=c(40,50,60), DIABETES=c(1), SYSBP.high=c(1), BPMEDS=1))
 
-female.riskset <- 
+female.riskset <-rbind(expand.grid(AGE=c(40,50,60), DIABETES=c(0,1), SYSBP.high=c(0,1), BPMEDS=0, TOTCHOL=as.numeric(quantile(flat.dat.female$TOTCHOL, probs = .1))),
+                       expand.grid(AGE=c(40,50,60), DIABETES=c(1), SYSBP.high=c(1), BPMEDS=1, TOTCHOL=as.numeric(quantile(flat.dat.female$TOTCHOL, probs = .99))))
+
+for (i in 1:nrow(male.riskset)) print(summary(survfit(male.final.model, newdata=male.riskset[i,], conf.type="log-log"), times=10))
+for (i in 1:nrow(female.riskset)) print(summary(survfit(female.final.model, newdata=female.riskset[i,], conf.type="log-log"), times=10))
+
+for (i in 1:nrow(male.riskset)) print(round(100*(1-as.numeric(summary(survfit(male.final.model, newdata=male.riskset[i,], conf.type="log-log"), times=10)[c("surv", "upper", "lower")])),1))
+for (i in 1:nrow(female.riskset)) print(round(100*(1-as.numeric(summary(survfit(female.final.model, newdata=female.riskset[i,], conf.type="log-log"), times=10)[c("surv", "upper", "lower")])),1))
+
+
+
+get_10yr_risk <- function(fit, newdata_row) {
+  s <- summary(
+    survfit(fit, newdata = newdata_row, conf.type = "log-log"),
+    times = 10
+  )
   
+  # Event probability = 1 - survival
+  est <- round(100 * (1 - s$surv), 1)
+  lo  <- round(100 * (1 - s$upper), 1)
+  hi  <- round(100 * (1 - s$lower), 1)
   
-p2 <- expand.grid(AGE=c(40,50,60), DIABETES=c(0,1), SYSBP.high=c(0,1), BPMEDS=0, TOTCHOL=mean(flat.dat.female$TOTCHOL))
+  paste0(est, "% (", lo, ", ", hi, ")")
+}
 
 
-, as.numeric(quantile(flat.dat.female$TOTCHOL, probs = .9)))
+build_table <- function(fit, riskset) {
+  
+  ages <- c(40, 50, 60)
+  n_age <- length(ages)
+  n_profiles <- nrow(riskset) / n_age
+  
+  # Step 1: compute all risks in row order
+  risks <- character(nrow(riskset))
+  for (i in seq_len(nrow(riskset))) {
+    risks[i] <- get_10yr_risk(fit, riskset[i, , drop = FALSE])
+  }
+  
+  # Step 2: reshape into wide format
+  mat <- matrix(
+    risks,
+    nrow = n_profiles,
+    ncol = n_age,
+    byrow = TRUE
+  )
+  
+  colnames(mat) <- paste0("Age ", ages)
+  
+  as.data.frame(mat, stringsAsFactors = FALSE)
+}
+
+risk.profile.names <- c("Baseline", "Diabetes only", "High BP", "Diabetes + High BP", "My profile")
+
+male.table   <- build_table(male.final.model, male.riskset)
+female.table <- build_table(female.final.model, female.riskset)
+
+rownames(male.table)   <- risk.profile.names
+rownames(female.table) <- risk.profile.names
+
+final.table <- rbind(
+  cbind(Sex = "Male",   male.table),
+  cbind(Sex = "Female", female.table)
+)
+
+final.table
+
+  
+##########################
+# Secondary analysis of time-varying status of Diabetes and SYSBP
+#########################
+flat.dat$period.ltfu12 <- rowSums(is.na(flat.dat[,c("PERIOD.1", "PERIOD.2")])) #redundant because no missing at baseline
+flat.dat$period.ltfu23 <- rowSums(is.na(flat.dat[,c("PERIOD.2", "PERIOD.3")]))
+flat.dat$period.ltfu123 <- rowSums(is.na(flat.dat[,c("PERIOD.1", "PERIOD.2", "PERIOD.3")])) #redundant because no missing at baseline, so this is equal to period.ltfu23
+
+flat.dat$sysbp.miss.fu <- rowSums(is.na(flat.dat[,c("SYSBP.1", "SYSBP.2", "SYSBP.3")]))
+flat.dat$diabetes.miss.fu <- rowSums(is.na(flat.dat[,c("DIABETES.1", "DIABETES.2", "DIABETES.3")]))
 
 
 
-DIABETES == 1 & SYSBP.high == 1
+#Crude transition probabilities
+diab.12.m <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==1,],
+                  prop.table(table(DIABETES.1, DIABETES.2),1))
 
-for (i in 1:nrow(p1)) print(summary(survfit(male.final.model, newdata=p1[i,]), times=365.25*10))
+diab.23.m <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==1,],
+                  prop.table(table(DIABETES.2, DIABETES.3),1))
 
-summary(survfit(male.final.model, newdata=p1[1,]), times=365.25*10)
+diab.12.f <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==2,],
+                  prop.table(table(DIABETES.1, DIABETES.2),1))
+
+diab.23.f <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==2,],
+                  prop.table(table(DIABETES.2, DIABETES.3),1))
+
+with(flat.dat[flat.dat$period.ltfu123==0,], prop.table(table(DIABETES.3, SEX),2)) #Prevalence of diabetes at period 3
+
+
+sysb.12.m <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==1,],
+                  prop.table(table(SYSBP.high.p1, SYSBP.high.p2),1))
+
+sysb.23.m <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==1,],
+                  prop.table(table(SYSBP.high.p2, SYSBP.high.p3),1))
+
+sysb.12.f <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==2,],
+                  prop.table(table(SYSBP.high.p1, SYSBP.high.p2),1))
+
+sysb.23.f <- with(flat.dat[flat.dat$period.ltfu123==0 & flat.dat$SEX==2,],
+                  prop.table(table(SYSBP.high.p2, SYSBP.high.p3),1))
+
+with(flat.dat[flat.dat$period.ltfu123==0,], prop.table(table(SYSBP.high.p3, SEX),2)) #Prevalence of high sysbp at period 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+diab.23 <- with(flat.dat[flat.dat$period.ltfu123==0,],
+                prop.table(table(DIABETES.2, DIABETES.3),1)
+                ) 
+  
+  prop.table(table(flat.dat$DIABETES.1, flat.dat$DIABETES.2), 1)
+
+
+prop.table(table(flat.dat$DIABETES.2, flat.dat$DIABETES.3), 1)
+
+
+table(flat.dat$PERIOD.1, exclude=NULL)
+table(flat.dat$PERIOD.2, exclude=NULL)
+table(flat.dat$PERIOD.3, exclude=NULL)
+
+table(flat.dat$PERIOD.2, flat.dat$PERIOD.3, flat.dat$SEX, exclude=NULL)
+
+
+
+
+1-as.numeric(summary(survfit(male.final.model, newdata=p1[1,]), times=10)[c("surv", "upper", "lower")])
+
+summary(survfit(male.final.model, newdata=p1[1,]), times=10)
 
 
 
