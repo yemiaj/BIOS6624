@@ -1,0 +1,5 @@
+# 04/22/2026
+
+p3_thoughts.R: Contains comments from class related to this project, my thoughts, and things to note during report writing; as well as chunk of rough/preliminary analysis code
+
+p3_clean_and_analyses.R: This is the main program for this project. It contains code for importing & cleaning, and generating plots and tables included in the report.
