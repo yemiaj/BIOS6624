@@ -18,6 +18,10 @@ library(flextable) #Save a dataframe object to Word
 #Import data provided on Canvas
 frh.dat <- read.csv("./Project3/DataRaw/frmgham2.csv")
 
+#Local directory location
+#C:\Users\Owner\Documents\cuclasses\spring26\bios_6624\BIOS6624\Project3\DataRaw
+
+
 #Imported data has 11627 rows and 4434 unique observations
 nrow(frh.dat); length(unique(frh.dat$RANDID))
 cat("The imported data has", nrow(frh.dat), "observations and", length(unique(frh.dat$RANDID)), "unique subjects.")
