@@ -50,10 +50,41 @@ Reach contextual conclusion of results
 Write function to test that package is doing what it is suppossed to do for each combo of arguments
 Trusted R package, but check that is doing what is expected to do based on the arguments specified!
 Save seed for each run for dat_gen and cv.glmnet
-  
+Provide details of the packages used for each of the 5+2 variable selection methods
+
+
   
 #Questions for office hours 
 1) Ask that the beta of 20-5 = 0 for the unimportant variables
 2) Bias is just for important variables, correct? The espected value for unimportant variables is 0 and bias can still be estimated
+    Ans: If they are being selected under correlation then they may be interested to talk about. True beta is 0 regardless since they are 0 in the package/function
 3) Getting type I error requires simulating data under null. No? Or we are adopting a different meaning of type I error here?
 4) What if the set of 5 variables are not selected in the model? 
+5) What p-value cutoff to use for F-test?
+6) We only care about bias, coverage, type I and II errors for the 5 selected variables. Yes?
+7) Is bias and coverage for all 5 vars or for each of the 5 variables?
+  
+Look into doRNG R package for parallelization
+
+#Insights from office hours  
+If you have a greater correlation, should you increase the alpha? Choose multiple values of alpha to check that elastic net is doing what it is suppossed to do with respect to being better with correlation
+0.05 for backwards selection
+AIC/BIC is a larger p-value alternative to 0.05 for backwards
+Unconditional (the focus and we are interested in variable selection) for bias and coverage is of interest.
+Analyze but summarize heavily results from X6 - X20
+Focus on unconditional bias and coverage (i.e. without regard for the variable being selected in a given model)
+Type 1: Selected and p-value <= 0.05 (use X6 to X20 for this)
+Type 2: not selected or p-value > 0.05 (use X1 to X5 for this)
+Coverage is 0 and bias is equal to beta when not selected
+
+
+
+
+
+
+
+
+
+
+
+  
