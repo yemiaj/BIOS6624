@@ -3,12 +3,300 @@
 #   data analysis involves performing variable selection in liinear regression using the 5+2 different methods specified
 ##########################################
 
+library(olsrr)
+
+
 set.seed(1)
 test <- dat.gen(250,0)
 
-analyze.data <- function(){
+analyze.data <- function(dat){
   
+  
+
 }
+
+
+
+#Generate data
+set.seed(1)
+test <- dat.gen(250,0)
+
+#Fit full model
+fullmodel <- lm(y ~ . , data=test)
+
+#Method 1: backwards using p-value
+back.sel.p <- ols_step_backward_p(fullmodel, p_val=0.05)#, progress = TRUE, details = TRUE)
+summary(back.sel.p$model)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+
+
+#Method 2: backwards using AIC
+select_AIC <- step(object = fullmodel, direction = 'backward', trace = 0, k = 2)
+summary(select_AIC)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+
+#Method 3: backwards using BIC
+select_BIC <- step(object = fullmodel, direction = 'backward', trace = 0, k = log(nrow(test)))
+summary(select_BIC)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+
+
+
+
+
+
+
+
+
+
+summary(back.sel.p$model)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+
+
+
+
+
+
+
+
+Methods
+1) backward selection based on F-test and p-value
+2) AIC
+3) BIC
+4) LASSO, 2 choices of lambda (lambda: min and 1se) ==> lm fit, debiased LASSO, and/or post-selection inference
+5) Elastic net, 2 choices of lambda (lambda: min and 1se) ==> lm fit, debiased LASSO, and/or post-selection inference
+
+
+
+
+
+
+
+res <- data.frame(matrix(ncol = 60, nrow = 0))
+names(res) <- c(paste0("v", 1:20), paste0("p", 1:20), paste0("c", 1:20))
+
+## ----- True beta values -----
+true_beta <- c(0.5/3, 1/3, 1.5/3, 2.0/3, 2.5/3, rep(0, 15))
+names(true_beta) <- paste0("v", 1:20)
+
+## ----- Extract estimates and p-values (intercept removed) -----
+coef_tab <- data.frame(
+  summary(back.sel.p$model)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+)
+
+## ----- Extract 95% confidence intervals -----
+ci_tab <- confint(back.sel.p$model, level = 0.95)
+
+## ----- Initialize a new empty row -----
+new_row <- res[0, ][1, ]
+
+## ----- Loop over all 20 possible variables -----
+for (j in 1:20) {
+  
+  vname <- paste0("v", j)
+  pname <- paste0("p", j)
+  cname <- paste0("c", j)
+  
+  if (vname %in% rownames(coef_tab)) {
+    
+    ## ----- Bias -----
+    new_row[[vname]] <- coef_tab[vname, "Estimate"] - true_beta[vname]
+    
+    ## ----- Significance indicator -----
+    new_row[[pname]] <- as.integer(
+      coef_tab[vname, "Pr...t.."] <= 0.05
+    )
+    
+    ## ----- Coverage indicator -----
+    new_row[[cname]] <- as.integer(
+      ci_tab[vname, 1] <= true_beta[vname] &&
+        true_beta[vname] <= ci_tab[vname, 2]
+    )
+    
+  } else {
+    
+    ## ----- Variable not selected -----
+    new_row[[vname]] <- NA_real_  # bias undefined
+    new_row[[pname]] <- 0         # not significant
+    new_row[[cname]] <- 0         # no coverage
+  }
+}
+
+## ----- Append to df -----
+res <- rbind(res, new_row)
+
+c
+
+
+
+#Methods
+
+
+
+
+
+                   
+                   
+                   
+summary(select_AIC)$coefficients
+
+
+#MASS
+AICbackward<-stepAIC(fullmodel, direction="backward")
+summary(AICbackward)$coefficients
+
+
+
+library(RcmdrMisc)
+
+fullmodel<-lm(Salary ~ AtBat + Hits + HmRun + Runs + RBI + Walks + Years + CAtBat + CHits + CHmRun + CRuns + CRBI + CWalks + League + Division + PutOuts + Assists + Errors + NewLeague, data=Hitters)
+
+BICbackward<-stepwise(fullmodel, direction="backward",criterion = "BIC")
+summary(BICbackward)$coefficients
+
+
+
+
+
+
+
+
+
+
+#end test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+true_beta <- c(0.5/3, 1/3, 1.5/3, 2.0/3, 2.5/3, rep(0, 15))
+names(true_beta) <- paste0("v", 1:20)
+
+ests <- data.frame(summary(back.sel.p$model)$coefficients[-1, c("Estimate", "Pr(>|t|)")])
+
+ci_tab <- confint(back.sel.p$model, level = 0.95)
+
+# Initialize one empty row (all NA, correct structure)
+new_row <- res[0, ][1, ]
+
+# Fill estimates and p-values
+for (var in rownames(ests)) {
+  v_name <- var
+  p_name <- sub("^v", "p", var)
+  
+  new_row[[v_name]] <- ests[var, "Estimate"]
+  new_row[[p_name]] <- ests[var, "Pr...t.."]
+}
+
+for (j in 1:20) {
+  vname <- paste0("v", j)
+  cname <- paste0("c", j)
+  
+  if (vname %in% rownames(ci_tab)) {
+    
+    # Confidence interval bounds
+    lower <- ci_tab[vname, 1]
+    upper <- ci_tab[vname, 2]
+    
+    # Coverage check
+    new_row[[cname]] <- as.integer(
+      lower <= true_beta[vname] &&
+        true_beta[vname] <= upper
+    )
+    
+  } else {
+    
+    # Variable not selected → coverage = 0
+    new_row[[cname]] <- 0
+  }
+}
+
+
+# Append to df
+res <- rbind(res, new_row)
+
+
+
+
+
+
+
+
+Vectorize this for faster Monte Carlo simulations
+
+
+
+
+
+
+
+ests <- data.frame(summary(back.sel.p$model)$coefficients)[-1,]
+
+
+
+ests <- summary(back.sel.p$model)$coefficients
+ests
+
+
+
+g
+
+
+
+
+
+fullmodel <- lm(y ~ . , data=test)
+back.sel.p <- ols_step_backward_p(fullmodel, p_val=0.05)#, progress = TRUE, details = TRUE)
+rownames(summary(back.sel.p$model)$coefficients)[-1]
+
+
+
+summary(back.sel.p$model)$coefficients
+
+
+
+
+  
+  
+summary(lm(y~v1+v2+v3+v4+v5,test))
+
+
+
+
+back.lmfit1<-ols_step_backward_p(fullmodel, prem = 0.15)
+summary(back.lmfit1$model)
+rownames(summary(back.lmfit2$model)$coefficients)[-1]
+
+
+back.lmfit2<-ols_step_backward_p(fullmodel, p_val=0.05)#, progress = TRUE, details = TRUE)
+summary(back.lmfit2$model)
+
+
+
+
+
 
 summary(t.fit <- lm(V1 ~ V01+V02+V03+V04+V05+V06+V07+V08+V09+V10+V11+V12+V13+V14+V15+V16+V17+V18+V19+V20, 
                     data=test))
