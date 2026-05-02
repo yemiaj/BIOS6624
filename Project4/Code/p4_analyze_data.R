@@ -7,7 +7,7 @@ library(olsrr)
 
 
 set.seed(1)
-test <- dat.gen(250,0)
+test <- dat.gen(250,0.7)
 
 analyze.data <- function(dat){
   
@@ -25,21 +25,87 @@ test <- dat.gen(250,0)
 fullmodel <- lm(y ~ . , data=test)
 
 #Method 1: backwards using p-value
-back.sel.p <- ols_step_backward_p(fullmodel, p_val=0.05)#, progress = TRUE, details = TRUE)
+back.sel.p <- olsrr::ols_step_backward_p(fullmodel, p_val=0.05)#, progress = TRUE, details = TRUE)
 summary(back.sel.p$model)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
 
-
 #Method 2: backwards using AIC
-select_AIC <- step(object = fullmodel, direction = 'backward', trace = 0, k = 2)
+select_AIC <- stats::step(object = fullmodel, direction = 'backward', trace = 0, k = 2)
 summary(select_AIC)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
 
 #Method 3: backwards using BIC
-select_BIC <- step(object = fullmodel, direction = 'backward', trace = 0, k = log(nrow(test)))
+select_BIC <- stats::step(object = fullmodel, direction = 'backward', trace = 0, k = log(nrow(test)))
 summary(select_BIC)$coefficients[-1, c("Estimate", "Pr(>|t|)")]
 
+set.seed(463784)
+# basic call to glmnet-uses a range of lambda values:
+lasso_mod <- glmnet::cv.glmnet(x = as.matrix(test[,-1]), y = test[,1], family = "gaussian", alpha = 1,   standardize = TRUE, type.measure = "mse", nfolds = 5)
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(lasso_mod, s = 'lambda.min'))[coef(lasso_mod, s = 'lambda.min')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(lasso_mod, s = 'lambda.1se'))[coef(lasso_mod, s = 'lambda.1se')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+
+set.seed(463784)
+elnet_mod1 <- glmnet::cv.glmnet(x = as.matrix(test[,-1]), y = test[,1], family = "gaussian", alpha = 0.5, standardize = TRUE, type.measure = "mse", nfolds = 5)
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(elnet_mod1, s = 'lambda.min'))[coef(elnet_mod1, s = 'lambda.min')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(elnet_mod1, s = 'lambda.1se'))[coef(elnet_mod1, s = 'lambda.1se')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+
+
+#Extra work (may include later)
+set.seed(463784)
+elnet_mod2 <- glmnet::cv.glmnet(x = as.matrix(test[,-1]), y = test[,1], family = "gaussian", alpha = 0.75, standardize = TRUE, type.measure = "mse", nfolds = 5)
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(elnet_mod2, s = 'lambda.min'))[coef(elnet_mod2, s = 'lambda.min')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(elnet_mod2, s = 'lambda.1se'))[coef(elnet_mod2, s = 'lambda.1se')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+
+set.seed(463784)
+elnet_mod3 <- glmnet::cv.glmnet(x = as.matrix(test[,-1]), y = test[,1], family = "gaussian", alpha = 0.99, standardize = TRUE, type.measure = "mse", nfolds = 5)
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(elnet_mod3, s = 'lambda.min'))[coef(elnet_mod3, s = 'lambda.min')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
+summary(lm(y ~ ., data = test[, c("y",rownames(coef(elnet_mod3, s = 'lambda.1se'))[coef(elnet_mod3, s = 'lambda.1se')[,1] != 0][-1])]))$coefficients[-1, c("Estimate", "Pr(>|t|)")]
 
 
 
+
+
+
+
+
+
+
+
+
+
+ coef(lasso_mod, s = 'lambda.min')
+rownames(coef(lasso_mod, s = 'lambda.min'))
+
+
+
+
+
+
+coef(lasso_mod, s = 'lambda.1se')
+
+
+
+lasso_mod$lambda.min
+lasso_mod_cv$lambda.1se
+
+
+
+sol <- coef(lasso_mod_cv, s = 'lambda.1se') 
+nsol <- rownames(sol)
+nsol <- nsol[sol[,1] != 0]
+nsol <- setdiff(nsol, '(Intercept)')
+
+lm_fit <- lm(y ~ . , data = dat2[, nsol])
+
+summary(lm_fit)
+
+
+
+
+
+
+plot(lasso_mod)
+plot(elnet_mod1)
+plot(elnet_mod2)
+plot(elnet_mod3)
 
 
 
