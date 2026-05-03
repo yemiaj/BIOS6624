@@ -28,7 +28,7 @@ For Selected Variables
     5) Type I error
     6) Type II error
 
-For retianed variables, there is a choice for doing testing on the final model 
+For retained variables, there is a choice for doing testing on the final model 
   (refitting the model as if variable selection did not occur) OR you an alternative and more appropriate method
   for testing because the first approach of refitting the final model is biased.
     a) Look into debiassed (desparsified) LASSO,
@@ -51,6 +51,12 @@ Write function to test that package is doing what it is suppossed to do for each
 Trusted R package, but check that is doing what is expected to do based on the arguments specified!
 Save seed for each run for dat_gen and cv.glmnet
 Provide details of the packages used for each of the 5+2 variable selection methods
+Do random testing to make sure performance measures is doing what is expected
+In future, vectorize and parallelize for faster run times (although my run time now was not too bad)
+            Use true random seed generator for better operating seed characteristics 
+            Check debiassed lasso and post-selection inference methods
+Include sampling distribution to show normality of estimates. E.g. hist(all.reuslts[all.reuslts$rho==.35,]$bias1)
+
 
 
   
@@ -79,8 +85,9 @@ Coverage is 0 and bias is equal to beta when not selected
 
 
 
-
-
+#More questions
+Loss function for cv.glmnet? MSE?
+I do not think I understand the true/false positive thing
 
 
 
