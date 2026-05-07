@@ -56,7 +56,14 @@ In future, vectorize and parallelize for faster run times (although my run time 
             Use true random seed generator for better operating seed characteristics 
             Check debiassed lasso and post-selection inference methods
 Include sampling distribution to show normality of estimates. E.g. hist(all.reuslts[all.reuslts$rho==.35,]$bias1)
-
+Oracle, specific function arguments used, and paralellization
+2dp for estimates
+Do post-selection inference
+What is the optimmal Monte-Carlo SE for bias, coverage, or rejection for example. Use the option that requires the most iterations, that is highest SE/
+How often is X6 different from the other variables in terms of selection, and difference in performance measure
+Comment on how doing selecitoninference is an extension of the current work
+Unconditional: coverage is set to 0 when not selected, therefore coverage estimate will be low if not selected often
+True signal, true noise
 
 
   
@@ -83,7 +90,14 @@ Type 1: Selected and p-value <= 0.05 (use X6 to X20 for this)
 Type 2: not selected or p-value > 0.05 (use X1 to X5 for this)
 Coverage is 0 and bias is equal to beta when not selected
 
+#insights from presentations
+Multicollinearity among predictors
+Predictors range from weak to strong association
+lambda chosen via k-fold cross-validation
+error is N(0,sigma^2); see the class worksheet for other details to add
+Type1 and 2 errors is per variable
 
+Add TPR for each of X1--X5, and TPR for all of X1-X5
 
 #More questions
 Loss function for cv.glmnet? MSE?
