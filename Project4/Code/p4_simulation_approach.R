@@ -64,9 +64,11 @@ How often is X6 different from the other variables in terms of selection, and di
 Comment on how doing selecitoninference is an extension of the current work
 Unconditional: coverage is set to 0 when not selected, therefore coverage estimate will be low if not selected often
 True signal, true noise
+Seperate table for bias, rejection, tp & fp
+Plot for coverage
 
 
-  
+
 #Questions for office hours 
 1) Ask that the beta of 20-5 = 0 for the unimportant variables
 2) Bias is just for important variables, correct? The espected value for unimportant variables is 0 and bias can still be estimated
