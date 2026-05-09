@@ -55,16 +55,16 @@ analyze.data <- function(n, rho, seed){
   res_all <- data.frame() #Initiate dataframe to store all matrices
   
   #Makes a call to compute.metrics() to estimate the performance metrics and rowbinds all the metrics for each model
-  res_all <- rbind(res_all, cbind(compute.metrics(bp), method = "Backwards p-value"))
-  res_all <- rbind(res_all, cbind(compute.metrics(ba), method = "Backwards AIC"))
-  res_all <- rbind(res_all, cbind(compute.metrics(bb), method = "Backwards BIC"))
-  res_all <- rbind(res_all, cbind(compute.metrics(lam), method = "LASSO Lambda-min"))
-  res_all <- rbind(res_all, cbind(compute.metrics(la1), method = "LASSO Lambda-1se"))
-  res_all <- rbind(res_all, cbind(compute.metrics(em), method = "ElasticNet Lambda-min"))
-  res_all <- rbind(res_all, cbind(compute.metrics(e1), method = "ElasticNet Lambda-1se"))
-  res_all <- rbind(res_all, cbind(compute.metrics(em2), method = "ElasticNet (a.95) Lambda-min"))
-  res_all <- rbind(res_all, cbind(compute.metrics(e12), method = "ElasticNet (a.95) Lambda-1se"))
-  res_all <- rbind(res_all, cbind(compute.metrics(om), method = "Oracle (The Truth)"))
+  res_all <- rbind(res_all, cbind(compute.metrics(bp), method = "2_Backwards p-value"))
+  res_all <- rbind(res_all, cbind(compute.metrics(ba), method = "3_Backwards AIC"))
+  res_all <- rbind(res_all, cbind(compute.metrics(bb), method = "4_Backwards BIC"))
+  res_all <- rbind(res_all, cbind(compute.metrics(lam), method = "5_LASSO Lambda-min"))
+  res_all <- rbind(res_all, cbind(compute.metrics(la1), method = "6_LASSO Lambda-1se"))
+  res_all <- rbind(res_all, cbind(compute.metrics(em), method = "7_ElasticNet Lambda-min"))
+  res_all <- rbind(res_all, cbind(compute.metrics(e1), method = "8_ElasticNet Lambda-1se"))
+  res_all <- rbind(res_all, cbind(compute.metrics(em2), method = "9_ElasticNet (a.95) Lambda-min"))
+  res_all <- rbind(res_all, cbind(compute.metrics(e12), method = "91_ElasticNet (a.95) Lambda-1se"))
+  res_all <- rbind(res_all, cbind(compute.metrics(om), method = "1_Oracle (The Truth)"))
   
   #Add n, rho, and seed to differentiate analysis scenarios
   res_all$n   <- n
@@ -72,7 +72,7 @@ analyze.data <- function(n, rho, seed){
   res_all$seed <- seed
   
   #rownames(res_all) <- res_all$method
-  rownames(res_all) <- 1:nrows(res_all)
+  rownames(res_all) <- 1:nrow(res_all)
   
   return(res_all) #Return performance metrics for each variable selection method
 }
