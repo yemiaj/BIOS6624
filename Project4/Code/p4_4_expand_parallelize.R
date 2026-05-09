@@ -5,8 +5,7 @@
 library(parallel)
 
 #Expand to all 6 scenarios of interest
-scens <- expand.grid(rho = c(0, 0.35, 0.7), n = c(250, 500)) 
-
+scens <- expand.grid(rho = c(0, 0.35, 0.7), n = c(250, 500))
 
 #######################################
 #Test run simulation for 100 iterations
@@ -28,11 +27,7 @@ all.results <- do.call(rbind, res_list) #Extract and combine all results to this
 t_end <- Sys.time() #End of simulation run
 runtime <- t_end - t_start #How long simulation took
 runtime
-#100 iterations took about 5.5 minutes
-
-
-
-
+#100 iterations took about ~5.5 minutes on a single core of a PC with 13th Gen Intel Core i7-1355U processor, and 64GB RAM
 
 #################################################################
 #Perform simulation in parallel for 10K iterations
@@ -51,7 +46,7 @@ clusterEvalQ(cl, {
 
 t_start <- Sys.time()
 
-nsim <- 1000
+nsim <- 10000
 res_list <- vector("list", nrow(scens))
 
 for (g in seq_len(nrow(scens))) {
@@ -69,11 +64,14 @@ for (g in seq_len(nrow(scens))) {
     )
 }
 full.results <- do.call(rbind, unlist(res_list, recursive = FALSE))
+
 stopCluster(cl) #Stop cluster
+
+#Export data to project directory
+write.csv(full.results, "./Project4/DataProcessed/bios6624_p4_sim_results.csv")
 
 t_end <- Sys.time() #End of simulation run
 runtime <- t_end - t_start #How long simulation took
 runtime
-
-#Export data to project directory
-write.csv(full.results, "./Project4/DataProcessed/bios6624_p4_sim_results.csv")
+#Time difference of 3.21167 hours
+#Running 10K simulations using 10 cores took 3.21 hours (see computer specs above), better spec'd PCs will achieve faster results
