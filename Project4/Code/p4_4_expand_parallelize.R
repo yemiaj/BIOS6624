@@ -2,7 +2,7 @@
 # Function to extend analysis to the 6 scenarios and perform simulation in parallel
 ##########################################
 
-library(parallel)
+library(parallel) #Needed for parallel simulation
 
 #Expand to all 6 scenarios of interest
 scens <- expand.grid(rho = c(0, 0.35, 0.7), n = c(250, 500))

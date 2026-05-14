@@ -2,7 +2,7 @@
 # Function to generate data from the hdrm package using specified parameters
 ##########################################
 
-library(hdrm)
+library(hdrm) #Used to generate data
 
 #Function to generate data
 dat.gen <- function(n, rho){

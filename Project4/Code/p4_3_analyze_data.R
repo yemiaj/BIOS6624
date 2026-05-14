@@ -3,9 +3,9 @@
 #   data analysis involves performing variable selection in linear regression using the 5+2 different methods specified
 ##########################################
 
-library(olsrr)
-library(glmnet)
-library(stats)
+library(olsrr) #Needed for backwards selection based on p-value
+library(glmnet) #Needed for shrinkage regression approaches (LASSO & elastic net)
+library(stats) #Needed for backwards selection based on AIC & BIC; this is loaded by default in any R seession however
 
 analyze.data <- function(n, rho, seed){
   
